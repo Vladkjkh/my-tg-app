@@ -1,72 +1,114 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Приложение</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            background: #000000;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-family: Arial, sans-serif;
-        }
-        .container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            width: 200px;
-        }
-        button {
-            padding: 20px;
-            font-size: 24px;
-            font-weight: bold;
-            border: none;
-            border-radius: 16px;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-        button:active {
-            opacity: 0.7;
-        }
-        .btn-1 {
-            background: #ffffff;
-            color: #000000;
-        }
-        .btn-2 {
-            background: #ffffff;
-            color: #000000;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <button class="btn-1" id="btn1">1</button>
-        <button class="btn-2" id="btn2">2</button>
-    </div>
+import telebot
+import requests
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from datetime import datetime
+import io
+import json
+import os
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+TOKEN = "ТВОЙ_ТОКЕН_СЮДА"
+bot = telebot.TeleBot(TOKEN)
 
-        document.getElementById('btn1').addEventListener('click', function() {
-            tg.sendData('1');
-            tg.close();
-        });
+def get_btc_history():
+    try:
+        url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart"
+        params = {
+            "vs_currency": "usd",
+            "days": "30"
+        }
+        response = requests.get(url, params=params)
+        data = response.json()
+        
+        prices = data["prices"]
+        dates = []
+        values = []
+        
+        for item in prices:
+            timestamp = item[0] / 1000
+            date = datetime.fromtimestamp(timestamp)
+            dates.append(date)
+            values.append(item[1])
+        
+        return dates, values
+    except Exception as e:
+        print(f"Ошибка: {e}")
+        return None, None
 
-        document.getElementById('btn2').addEventListener('click', function() {
-            tg.sendData('2');
-            tg.close();
-        });
-    </script>
-</body>
-</html>
+def create_btc_chart(dates, values):
+    plt.figure(figsize=(10, 6))
+    plt.plot(dates, values, color='orange', linewidth=2)
+    plt.title('Bitcoin - 30 days')
+    plt.xlabel('Date')
+    plt.ylabel('Price (USD)')
+    plt.grid(True, alpha=0.3)
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d.%m'))
+    plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=5))
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=100)
+    buf.seek(0)
+    plt.close()
+    
+    return buf
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+    btn1 = telebot.types.KeyboardButton("1 - BTC Chart")
+    btn2 = telebot.types.KeyboardButton("2")
+    markup.add(btn1, btn2)
+    
+    bot.send_message(
+        message.chat.id,
+        "Press 1 to get Bitcoin chart",
+        reply_markup=markup
+    )
+
+@bot.message_handler(content_types=['web_app_data'])
+def handle_web_app_data(message):
+    data = message.web_app_data.data
+    
+    if data == '1':
+        bot.send_message(message.chat.id, "Loading data...")
+        
+        dates, values = get_btc_history()
+        
+        if dates is None:
+            bot.send_message(message.chat.id, "Error loading data")
+            return
+        
+        chart_bytes = create_btc_chart(dates, values)
+        bot.send_photo(
+            message.chat.id,
+            chart_bytes,
+            caption="Bitcoin chart - last 30 days"
+        )
+        
+    elif data == '2':
+        bot.send_message(message.chat.id, "You pressed button 2")
+
+@bot.message_handler(func=lambda msg: msg.text == '1 - BTC Chart')
+def button_1_text(message):
+    bot.send_message(message.chat.id, "Loading data...")
+    dates, values = get_btc_history()
+    
+    if dates is None:
+        bot.send_message(message.chat.id, "Error loading data")
+        return
+    
+    chart_bytes = create_btc_chart(dates, values)
+    bot.send_photo(
+        message.chat.id,
+        chart_bytes,
+        caption="Bitcoin chart - last 30 days"
+    )
+
+@bot.message_handler(func=lambda msg: msg.text == '2')
+def button_2_text(message):
+    bot.send_message(message.chat.id, "You pressed button 2")
+
+print("Bot started")
+bot.polling(none_stop=True)
