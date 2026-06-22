@@ -30,7 +30,6 @@
             position: relative;
         }
 
-        /* Затемнение */
         body::before {
             content: '';
             position: fixed;
@@ -54,11 +53,11 @@
             gap: 10px;
         }
 
-        /* Кнопки */
         .top-buttons {
             display: flex;
             gap: 8px;
             flex-shrink: 0;
+            margin-bottom: 0px;
         }
 
         .top-btn {
@@ -84,13 +83,13 @@
             background: rgba(255, 255, 255, 0.2);
         }
 
-        /* Список монет */
         .coins-list {
             flex: 1;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
             gap: 4px;
+            padding-top: 10px;
             padding-bottom: 10px;
         }
 
@@ -185,13 +184,11 @@
 <body>
 
     <div class="app">
-        <!-- Кнопки сверху -->
         <div class="top-buttons">
             <button class="top-btn" id="indicatorsBtn">Индикаторы</button>
             <button class="top-btn" id="chartsBtn">Графики</button>
         </div>
 
-        <!-- Список монет -->
         <div class="coins-list" id="coinsList">
             <div class="loading">Загрузка данных...</div>
         </div>
