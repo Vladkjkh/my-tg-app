@@ -18,21 +18,60 @@
             align-items: center;
             font-family: Arial, sans-serif;
             flex-direction: column;
-            background-image: url('https://avatars.mds.yandex.net/i?id=a20422f8f0d2a0713b6bb52f795e648840fd6905-5715888-images-thumbs&n=13');
+            background-image: url('https://avatars.mds.yandex.net/get-entity_search/2356618/969838143/orig');
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
+            position: relative;
         }
-         body::before {
+        body::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(0, 0, 0, 0.5);
             z-index: 0;
         }
+        
+        /* ВЕРХНЯЯ ПАНЕЛЬ */
+        .top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 20px;
+            z-index: 2;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .top-left, .top-right {
+            display: flex;
+            flex-direction: column;
+        }
+        .top-left .label, .top-right .label {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .top-left .value, .top-right .value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ffffff;
+            margin-top: 2px;
+        }
+        .top-left .value {
+            color: #4caf50;
+        }
+        .top-right .value {
+            color: #ff9800;
+        }
+        
         .container {
             display: flex;
             flex-direction: column;
@@ -40,6 +79,7 @@
             width: 200px;
             position: relative;
             z-index: 1;
+            margin-top: 80px;
         }
         button {
             padding: 20px;
@@ -86,9 +126,33 @@
         .back-btn:active {
             opacity: 0.7;
         }
+
+        /* Загрузчик */
+        .loading {
+            color: #ffffff;
+            font-size: 14px;
+            text-align: center;
+            z-index: 2;
+            position: absolute;
+            top: 80px;
+            left: 0;
+            right: 0;
+        }
     </style>
 </head>
 <body>
+
+    <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
+    <div class="top-bar">
+        <div class="top-left">
+            <span class="label">Рыночная капитализация</span>
+            <span class="value" id="marketCap">Загрузка...</span>
+        </div>
+        <div class="top-right">
+            <span class="label">Индекс страха и жадности</span>
+            <span class="value" id="fearGreed">Загрузка...</span>
+        </div>
+    </div>
 
     <div id="menu" class="container">
         <button class="btn-1" id="btn1">1</button>
@@ -103,11 +167,54 @@
         tg.ready();
         tg.expand();
 
+        // Функция получения капитализации
+        async function getMarketCap() {
+            try {
+                const response = await fetch('https://api.coingecko.com/api/v3/global');
+                const data = await response.json();
+                const cap = data.data.total_market_cap.usd;
+                if (cap >= 1e12) {
+                    return '$' + (cap / 1e12).toFixed(2) + ' трлн';
+                } else if (cap >= 1e9) {
+                    return '$' + (cap / 1e9).toFixed(2) + ' млрд';
+                } else {
+                    return '$' + cap.toFixed(0);
+                }
+            } catch (e) {
+                return 'Ошибка';
+            }
+        }
+
+        // Функция получения индекса страха и жадности
+        async function getFearGreed() {
+            try {
+                const response = await fetch('https://api.alternative.me/fng/?limit=1');
+                const data = await response.json();
+                const value = data.data[0].value;
+                const classification = data.data[0].value_classification;
+                return value + ' - ' + classification;
+            } catch (e) {
+                return 'Ошибка';
+            }
+        }
+
+        // Загружаем данные
+        async function loadData() {
+            const cap = await getMarketCap();
+            const fg = await getFearGreed();
+            document.getElementById('marketCap').textContent = cap;
+            document.getElementById('fearGreed').textContent = fg;
+        }
+
+        loadData();
+
+        // Кнопка 1
         document.getElementById('btn1').addEventListener('click', function() {
             tg.sendData('1');
             tg.close();
         });
 
+        // Кнопка 2
         document.getElementById('btn2').addEventListener('click', function() {
             document.getElementById('menu').style.display = 'none';
             const container = document.getElementById('chart-container');
@@ -133,6 +240,7 @@
             container.appendChild(script);
         });
 
+        // Кнопка "Назад"
         document.getElementById('backBtn').addEventListener('click', function() {
             document.getElementById('chart-container').style.display = 'none';
             document.getElementById('chart-container').innerHTML = '';
