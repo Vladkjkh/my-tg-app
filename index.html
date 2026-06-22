@@ -67,6 +67,23 @@
             transform: scale(0.95);
             opacity: 0.7;
         }
+
+        /* ЛИНИЯ ПОД КНОПКАМИ */
+        .line-container {
+            position: absolute;
+            top: 112px;
+            left: 20px;
+            right: 20px;
+            z-index: 2;
+            display: flex;
+            justify-content: center;
+        }
+        .line {
+            width: 100%;
+            max-width: 180px;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -74,6 +91,10 @@
     <div class="top-buttons">
         <button class="top-btn" id="indicatorsBtn">Индикаторы</button>
         <button class="top-btn" id="chartsBtn">Графики</button>
+    </div>
+
+    <div class="line-container">
+        <div class="line"></div>
     </div>
 
     <script>
