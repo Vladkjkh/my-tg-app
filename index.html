@@ -20,8 +20,6 @@
             background-repeat: no-repeat;
             position: relative;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
         }
         body::before {
             content: '';
@@ -34,15 +32,16 @@
             z-index: 0;
         }
 
-        /* КНОПКИ СВЕРХУ */
         .top-buttons {
-            position: relative;
-            z-index: 2;
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
             display: flex;
             justify-content: space-between;
-            padding: 20px 20px 4px 20px;
+            padding: 0 20px;
+            z-index: 2;
             gap: 6px;
-            flex-shrink: 0;
         }
         .top-btn {
             flex: 1;
@@ -66,12 +65,14 @@
             opacity: 0.7;
         }
 
-        /* СПИСОК МОНЕТ */
         .coins-list {
-            position: relative;
+            position: absolute;
+            top: 140px;
+            left: 0;
+            right: 0;
+            bottom: 0;
             z-index: 1;
-            flex: 1;
-            padding: 4px 16px 16px 16px;
+            padding: 0 16px 16px 16px;
             overflow-y: auto;
         }
         .coin-item {
