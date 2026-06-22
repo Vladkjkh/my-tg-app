@@ -11,131 +11,171 @@
             padding: 0;
             box-sizing: border-box;
         }
+
+        html,
         body {
-            height: 100vh;
+            height: 100%;
             font-family: Arial, sans-serif;
+            background-color: #000;
+        }
+
+        body {
             background-image: url('https://avatars.mds.yandex.net/get-entity_search/2356618/969838143/orig');
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
             position: relative;
-            overflow: hidden;
         }
+
+        /* Затемнение */
         body::before {
             content: '';
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.6);
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.65);
             z-index: 0;
         }
 
-        .top-buttons {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            right: 20px;
+        .app {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 420px;
+            height: 100vh;
+            padding: 20px 16px 16px 16px;
             display: flex;
-            gap: 6px;
-            z-index: 5;
+            flex-direction: column;
+            gap: 10px;
         }
+
+        /* Кнопки */
+        .top-buttons {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
         .top-btn {
             flex: 1;
             aspect-ratio: 1 / 1;
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
             color: #ffffff;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(8px);
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
             text-align: center;
-        }
-        .top-btn:active {
-            transform: scale(0.95);
-            opacity: 0.7;
+            transition: 0.2s;
         }
 
-        .coins-list {
-            position: absolute;
-            top: 135px;
-            left: 16px;
-            right: 16px;
-            bottom: 10px;
-            z-index: 1;
-            overflow-y: auto;
+        .top-btn:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.2);
         }
+
+        /* Список монет */
+        .coins-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding-bottom: 10px;
+        }
+
         .coin-item {
             display: flex;
             align-items: center;
             padding: 10px 14px;
-            margin-bottom: 4px;
-            background: rgba(255, 255, 255, 0.06);
-            border-radius: 10px;
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(4px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            flex-shrink: 0;
         }
+
         .coin-number {
             color: rgba(255, 255, 255, 0.25);
-            font-size: 11px;
+            font-size: 12px;
             font-weight: bold;
-            width: 20px;
+            width: 22px;
         }
+
         .coin-icon {
-            width: 26px;
-            height: 26px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
-            margin-right: 10px;
+            margin-right: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: bold;
             color: #fff;
             flex-shrink: 0;
         }
-        .coin-icon.btc { background: #f7931a; }
-        .coin-icon.eth { background: #627eea; }
-        .coin-icon.xrp { background: #00aae4; }
-        .coin-icon.hype { background: #8b5cf6; }
+        .coin-icon.btc {
+            background: #f7931a;
+        }
+        .coin-icon.eth {
+            background: #627eea;
+        }
+        .coin-icon.xrp {
+            background: #00aae4;
+        }
+        .coin-icon.hype {
+            background: #8b5cf6;
+        }
 
         .coin-info {
             flex: 1;
         }
         .coin-name {
-            color: #ffffff;
-            font-size: 13px;
+            color: #fff;
+            font-size: 14px;
             font-weight: 600;
         }
         .coin-symbol {
             color: rgba(255, 255, 255, 0.35);
-            font-size: 10px;
+            font-size: 11px;
             text-transform: uppercase;
         }
+
         .coin-price {
-            color: #ffffff;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 12px;
+            white-space: nowrap;
+        }
+
+        .coin-change {
             font-size: 13px;
             font-weight: 600;
+            min-width: 60px;
             text-align: right;
-            margin-right: 10px;
+            white-space: nowrap;
         }
-        .coin-change {
-            font-size: 12px;
-            font-weight: 600;
-            text-align: right;
-            min-width: 55px;
+        .coin-change.green {
+            color: #4caf50;
         }
-        .coin-change.green { color: #4caf50; }
-        .coin-change.red { color: #f44336; }
+        .coin-change.red {
+            color: #f44336;
+        }
 
         .loading {
-            color: rgba(255,255,255,0.6);
+            color: rgba(255, 255, 255, 0.5);
             text-align: center;
             padding: 30px 0;
             font-size: 14px;
@@ -144,13 +184,17 @@
 </head>
 <body>
 
-    <div class="top-buttons">
-        <button class="top-btn" id="indicatorsBtn">Индикаторы</button>
-        <button class="top-btn" id="chartsBtn">Графики</button>
-    </div>
+    <div class="app">
+        <!-- Кнопки сверху -->
+        <div class="top-buttons">
+            <button class="top-btn" id="indicatorsBtn">Индикаторы</button>
+            <button class="top-btn" id="chartsBtn">Графики</button>
+        </div>
 
-    <div class="coins-list" id="coinsList">
-        <div class="loading">Загрузка данных...</div>
+        <!-- Список монет -->
+        <div class="coins-list" id="coinsList">
+            <div class="loading">Загрузка данных...</div>
+        </div>
     </div>
 
     <script>
@@ -178,7 +222,8 @@
         async function fetchCoinData() {
             try {
                 const ids = coins.map(c => c.id).join(',');
-                const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
+                const url =
+                    `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
                 const response = await fetch(url);
                 const data = await response.json();
 
@@ -191,24 +236,21 @@
 
                     const price = info.usd;
                     const change = info.usd_24h_change;
-
-                    const item = document.createElement('div');
-                    item.className = 'coin-item';
-
                     const changeClass = change >= 0 ? 'green' : 'red';
                     const changeText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
 
+                    const item = document.createElement('div');
+                    item.className = 'coin-item';
                     item.innerHTML = `
-                        <span class="coin-number">${index + 1}</span>
-                        <div class="coin-icon ${coin.symbol}">${coin.icon}</div>
-                        <div class="coin-info">
-                            <div class="coin-name">${coin.name}</div>
-                            <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
-                        </div>
-                        <div class="coin-price">$${price.toFixed(2)}</div>
-                        <div class="coin-change ${changeClass}">${changeText}</div>
-                    `;
-
+                            <span class="coin-number">${index + 1}</span>
+                            <div class="coin-icon ${coin.symbol}">${coin.icon}</div>
+                            <div class="coin-info">
+                                <div class="coin-name">${coin.name}</div>
+                                <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
+                            </div>
+                            <div class="coin-price">$${price.toFixed(2)}</div>
+                            <div class="coin-change ${changeClass}">${changeText}</div>
+                        `;
                     list.appendChild(item);
                 });
 
