@@ -18,6 +18,7 @@
             justify-content: center;
             align-items: center;
             font-family: Arial, sans-serif;
+            flex-direction: column;
         }
         .container {
             display: flex;
@@ -45,28 +46,87 @@
             background: #ffffff;
             color: #000000;
         }
+        #chart-container {
+            display: none;
+            width: 100%;
+            height: 80vh;
+            margin-top: 20px;
+        }
+        .back-btn {
+            background: #333333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin-top: 10px;
+            font-size: 16px;
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+
+    <!-- ЭКРАН С КНОПКАМИ -->
+    <div id="menu" class="container">
         <button class="btn-1" id="btn1">1</button>
         <button class="btn-2" id="btn2">2</button>
     </div>
+
+    <!-- КОНТЕЙНЕР ДЛЯ ГРАФИКА -->
+    <div id="chart-container">
+        <!-- Сюда загрузится график -->
+    </div>
+
+    <button class="back-btn" id="backBtn">Назад</button>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
+        // Кнопка 1 - отправляем данные боту (как раньше)
         document.getElementById('btn1').addEventListener('click', function() {
             tg.sendData('1');
             tg.close();
         });
 
+        // Кнопка 2 - открываем график ВНУТРИ приложения
         document.getElementById('btn2').addEventListener('click', function() {
-            tg.sendData('2');
-            tg.close();
+            // Скрываем меню с кнопками
+            document.getElementById('menu').style.display = 'none';
+            // Показываем контейнер для графика
+            const container = document.getElementById('chart-container');
+            container.style.display = 'block';
+            // Показываем кнопку "Назад"
+            document.getElementById('backBtn').style.display = 'block';
+
+            // Загружаем график от TradingView (встраиваем прямо сюда)
+            container.innerHTML = ''; // Очищаем
+            const script = document.createElement('script');
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+            script.innerHTML = JSON.stringify({
+                "width": "100%",
+                "height": "100%",
+                "symbol": "BINANCE:BTCUSDT",
+                "interval": "60",
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "ru",
+                "allow_symbol_change": true,
+                "calendar": false,
+                "support_host": "https://www.tradingview.com"
+            });
+            container.appendChild(script);
+        });
+
+        // Кнопка "Назад" - возвращаем меню
+        document.getElementById('backBtn').addEventListener('click', function() {
+            document.getElementById('chart-container').style.display = 'none';
+            document.getElementById('chart-container').innerHTML = '';
+            document.getElementById('menu').style.display = 'flex';
+            document.getElementById('backBtn').style.display = 'none';
         });
     </script>
+
 </body>
 </html>
