@@ -32,16 +32,20 @@
             z-index: 0;
         }
 
+        .container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 20px 20px 0 20px;
+        }
+
         .top-buttons {
-            position: absolute;
-            top: 20px;
-            left: 0;
-            right: 0;
             display: flex;
             justify-content: space-between;
-            padding: 0 20px;
-            z-index: 2;
             gap: 6px;
+            flex-shrink: 0;
         }
         .top-btn {
             flex: 1;
@@ -66,14 +70,10 @@
         }
 
         .coins-list {
-            position: absolute;
-            top: 140px;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 1;
-            padding: 0 16px 16px 16px;
+            flex: 1;
+            padding-top: 6px;
             overflow-y: auto;
+            padding-bottom: 16px;
         }
         .coin-item {
             display: flex;
@@ -148,13 +148,15 @@
 </head>
 <body>
 
-    <div class="top-buttons">
-        <button class="top-btn" id="indicatorsBtn">Индикаторы</button>
-        <button class="top-btn" id="chartsBtn">Графики</button>
-    </div>
+    <div class="container">
+        <div class="top-buttons">
+            <button class="top-btn" id="indicatorsBtn">Индикаторы</button>
+            <button class="top-btn" id="chartsBtn">Графики</button>
+        </div>
 
-    <div class="coins-list" id="coinsList">
-        <div class="loading">Загрузка данных...</div>
+        <div class="coins-list" id="coinsList">
+            <div class="loading">Загрузка данных...</div>
+        </div>
     </div>
 
     <script>
