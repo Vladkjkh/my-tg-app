@@ -557,7 +557,7 @@
             throw new Error('Не удалось загрузить данные');
         }
 
-        // ===== ФУНКЦИЯ ДЛЯ ЯХУ ФИНАНС =====
+        // ===== ФУНКЦИЯ ДЛЯ YAHOO FINANCE =====
         async function fetchYahooData(symbol) {
             try {
                 const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`;
@@ -617,7 +617,7 @@
         }
 
         async function fetchChartData(coinId, days) {
-            // Для Yahoo-активов график не строим (возвращаем пустой массив)
+            // Для Yahoo-активов график не строим
             const yahooIds = ['spx', 'ndx', 'uko', 'xau', 'xag'];
             if (yahooIds.includes(coinId)) {
                 return [];
@@ -639,7 +639,6 @@
 
         function drawLineChart(ctx, prices) {
             if (prices.length === 0) {
-                // Если нет данных, показываем пустой график
                 chart = new Chart(ctx, {
                     type: 'line',
                     data: {
@@ -944,6 +943,7 @@
 
         async function fetchCoinData() {
             try {
+                // Сначала показываем кеш, если есть
                 if (coinCache) {
                     renderCoins(coinCache);
                 }
@@ -1008,4 +1008,4 @@
                 item.className = 'coin-item';
                 item.innerHTML = `
                         <span class="coin-number">${index + 1}</span>
-                        <div class="coin-icon ${coin.symbol}">${coin
+                        <div class="coin-icon
