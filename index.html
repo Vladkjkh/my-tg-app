@@ -201,8 +201,7 @@
             padding: 12px 0;
             border-radius: 12px;
             border: none;
-            font-size: 14px;
-            font-weight: bold;
+            font-size: 24px;
             cursor: pointer;
             transition: 0.2s;
             text-align: center;
@@ -289,8 +288,8 @@
 
         <!-- НИЖНИЕ КНОПКИ -->
         <div class="bottom-bar">
-            <button class="bottom-btn btn-home" id="homeBtn">На главную</button>
-            <button class="bottom-btn btn-profile" id="profileBtn">Профиль</button>
+            <button class="bottom-btn btn-home" id="homeBtn">🏠</button>
+            <button class="bottom-btn btn-profile" id="profileBtn">👤</button>
         </div>
     </div>
 
@@ -316,17 +315,14 @@
             tg.close();
         });
 
-        // КНОПКА НА ГЛАВНУЮ
+        // КНОПКА НА ГЛАВНУЮ (ДОМИК)
         document.getElementById('homeBtn').addEventListener('click', function() {
-            // Показываем главную страницу
             document.getElementById('mainPage').style.display = 'flex';
-            // Если профиль открыт — закрываем
             document.getElementById('profilePage').style.display = 'none';
-            // Показываем контейнер
             document.getElementById('appContainer').style.display = 'flex';
         });
 
-        // КНОПКА ПРОФИЛЬ
+        // КНОПКА ПРОФИЛЬ (ЧЕЛОВЕЧЕК)
         document.getElementById('profileBtn').addEventListener('click', function() {
             document.getElementById('profilePage').style.display = 'flex';
             document.getElementById('appContainer').style.display = 'none';
