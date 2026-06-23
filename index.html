@@ -182,20 +182,18 @@
             font-size: 14px;
         }
 
-        /* СТРАНИЦА ГРАФИКА */
-        #chartPage {
+        /* СТРАНИЦА БИТКОИНА - ТЕМНО СИНИЙ МАТОВЫЙ ФОН */
+        #btcPage {
             display: none;
             flex-direction: column;
             flex: 1;
             background: #0a0e27;
             border-radius: 16px;
-            padding: 16px;
-            margin-top: 0;
+            padding: 20px;
             position: relative;
-            overflow: hidden;
         }
 
-        #chartPage .back-btn {
+        #btcPage .back-btn {
             position: absolute;
             top: 12px;
             left: 12px;
@@ -210,79 +208,25 @@
             backdrop-filter: blur(4px);
         }
 
-        #chartPage .back-btn:active {
+        #btcPage .back-btn:active {
             transform: scale(0.95);
             opacity: 0.7;
         }
 
-        #chartPage .coin-title {
+        #btcPage .page-title {
             color: #fff;
-            font-size: 20px;
+            font-size: 24px;
             font-weight: bold;
             text-align: center;
-            margin-top: 4px;
-            margin-bottom: 8px;
+            margin-top: 30px;
         }
 
-        .chart-container {
-            flex: 1;
-            min-height: 0;
-            border-radius: 12px;
-            overflow: hidden;
-            background: rgba(0, 0, 0, 0.3);
-        }
-
-        .chart-container iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        .timeframes {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
+        #btcPage .page-subtitle {
+            color: rgba(255, 255, 255, 0.5);
+            text-align: center;
             margin-top: 10px;
-            flex-shrink: 0;
+            font-size: 14px;
         }
-
-        .timeframe-btn {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 13px;
-            font-weight: 600;
-            padding: 6px 16px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .timeframe-btn.active {
-            background: rgba(255, 255, 255, 0.15);
-            color: #fff;
-            border-color: rgba(255, 255, 255, 0.3);
-        }
-
-        .timeframe-btn:active {
-            transform: scale(0.95);
-        }
-
-        .chart-price {
-            color: #fff;
-            font-size: 28px;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 4px;
-        }
-        .chart-change {
-            text-align: center;
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        .chart-change.green { color: #4caf50; }
-        .chart-change.red { color: #f44336; }
     </style>
 </head>
 <body>
@@ -300,20 +244,11 @@
             </div>
         </div>
 
-        <!-- СТРАНИЦА ГРАФИКА -->
-        <div id="chartPage">
-            <button class="back-btn" id="backToMain">←</button>
-            <div class="coin-title" id="chartCoinTitle">Bitcoin</div>
-            <div class="chart-price" id="chartPrice">$0.00</div>
-            <div class="chart-change" id="chartChange">+0.00%</div>
-            <div class="chart-container" id="chartContainer">
-                <iframe id="tradingviewFrame" src=""></iframe>
-            </div>
-            <div class="timeframes">
-                <button class="timeframe-btn" data-interval="1D">1день</button>
-                <button class="timeframe-btn active" data-interval="4h">4часа</button>
-                <button class="timeframe-btn" data-interval="1h">1час</button>
-            </div>
+        <!-- СТРАНИЦА БИТКОИНА -->
+        <div id="btcPage">
+            <button class="back-btn" id="backFromBtc">←</button>
+            <div class="page-title">Bitcoin</div>
+            <div class="page-subtitle">Здесь будет график</div>
         </div>
     </div>
 
@@ -322,7 +257,6 @@
         tg.ready();
         tg.expand();
 
-        // ----- КНОПКИ ВЕРХНИЕ -----
         document.getElementById('indicatorsBtn').addEventListener('click', function() {
             tg.sendData('indicators');
             tg.close();
@@ -333,7 +267,6 @@
             tg.close();
         });
 
-        // ----- ДАННЫЕ МОНЕТ -----
         const coins = [
             { id: 'bitcoin', name: 'Bitcoin', symbol: 'btc', icon: '₿' },
             { id: 'ethereum', name: 'Ethereum', symbol: 'eth', icon: '⟠' },
@@ -341,10 +274,6 @@
             { id: 'hyperliquid', name: 'Hype', symbol: 'hype', icon: '◆' }
         ];
 
-        let currentCoin = 'bitcoin';
-        let currentInterval = '4h';
-
-        // ----- ЗАГРУЗКА ЦЕН -----
         async function fetchCoinData() {
             try {
                 const ids = coins.map(c => c.id).join(',');
@@ -378,7 +307,9 @@
                         <div class="coin-change ${changeClass}">${changeText}</div>
                     `;
                     item.addEventListener('click', function() {
-                        openChart(coin.id, coin.name, price, change, changeClass, changeText);
+                        if (coin.id === 'bitcoin') {
+                            openBtcPage();
+                        }
                     });
                     list.appendChild(item);
                 });
@@ -388,47 +319,16 @@
             }
         }
 
-        // ----- ОТКРЫТЬ ГРАФИК -----
-        function openChart(coinId, coinName, price, change, changeClass, changeText) {
-            currentCoin = coinId;
+        function openBtcPage() {
             document.getElementById('mainPage').style.display = 'none';
-            document.getElementById('chartPage').style.display = 'flex';
-
-            document.getElementById('chartCoinTitle').textContent = coinName;
-            document.getElementById('chartPrice').textContent = '$' + price.toFixed(2);
-            const changeEl = document.getElementById('chartChange');
-            changeEl.textContent = changeText;
-            changeEl.className = 'chart-change ' + changeClass;
-
-            updateChart(coinId, currentInterval);
+            document.getElementById('btcPage').style.display = 'flex';
         }
 
-        // ----- ОБНОВИТЬ ГРАФИК -----
-        function updateChart(coinId, interval) {
-            const symbol = coinId === 'bitcoin' ? 'BTC' :
-                           coinId === 'ethereum' ? 'ETH' :
-                           coinId === 'ripple' ? 'XRP' : 'HYPE';
-            const frame = document.getElementById('tradingviewFrame');
-            frame.src = `https://s.tradingview.com/widgetembed/?hideideas=1&symbol=CRYPTO:${symbol}USD&interval=${interval}`;
-        }
-
-        // ----- КНОПКИ ТАЙМФРЕЙМОВ -----
-        document.querySelectorAll('.timeframe-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                currentInterval = this.dataset.interval;
-                updateChart(currentCoin, currentInterval);
-            });
-        });
-
-        // ----- КНОПКА НАЗАД -----
-        document.getElementById('backToMain').addEventListener('click', function() {
-            document.getElementById('chartPage').style.display = 'none';
+        document.getElementById('backFromBtc').addEventListener('click', function() {
+            document.getElementById('btcPage').style.display = 'none';
             document.getElementById('mainPage').style.display = 'flex';
         });
 
-        // ----- ЗАПУСК -----
         fetchCoinData();
         setInterval(fetchCoinData, 60000);
     </script>
