@@ -237,19 +237,6 @@
             padding: 20px;
         }
 
-        #profilePage .close-profile {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: #fff;
-            font-size: 24px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-        }
-
         .profile-card {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 16px;
@@ -325,10 +312,6 @@
         .profile-fields input:focus {
             border-color: #f7931a;
         }
-
-        .profile-fields .field-group {
-            margin-bottom: 0;
-        }
     </style>
 </head>
 <body>
@@ -355,8 +338,6 @@
 
     <!-- ===== ПРОФИЛЬ ===== -->
     <div id="profilePage">
-        <button class="close-profile" id="closeProfile">✕</button>
-
         <div class="profile-card">
             <div class="profile-row">
                 <div class="avatar-box" id="avatarBox">
@@ -402,11 +383,6 @@
             loadProfileData();
         });
 
-        document.getElementById('closeProfile').addEventListener('click', function() {
-            document.getElementById('profilePage').style.display = 'none';
-            document.getElementById('appContainer').style.display = 'flex';
-        });
-
         // ===== АВАТАРКА =====
         const avatarBox = document.getElementById('avatarBox');
         const avatarInput = document.getElementById('avatarInput');
@@ -431,7 +407,7 @@
             }
         });
 
-        // ===== НИКНЕЙМ - СОХРАНЕНИЕ ПО ENTER =====
+        // ===== НИКНЕЙМ =====
         const nicknameInput = document.getElementById('nicknameInput');
 
         nicknameInput.addEventListener('keydown', function(e) {
