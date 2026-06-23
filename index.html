@@ -138,8 +138,17 @@
         }
         .coin-icon.btc { background: #f7931a; }
         .coin-icon.eth { background: #627eea; }
+        .coin-icon.bnb { background: #f0b90b; }
         .coin-icon.xrp { background: #00aae4; }
+        .coin-icon.sol { background: #9945ff; }
+        .coin-icon.trx { background: #ef0027; }
         .coin-icon.hype { background: #8b5cf6; }
+        .coin-icon.ltc { background: #a6a9aa; }
+        .coin-icon.spx { background: #4caf50; }
+        .coin-icon.ndx { background: #2196f3; }
+        .coin-icon.uko { background: #ff6f00; }
+        .coin-icon.xau { background: #ffd700; }
+        .coin-icon.xag { background: #c0c0c0; }
 
         .coin-info {
             flex: 1;
@@ -513,8 +522,17 @@
             const map = {
                 'bitcoin': 'Bitcoin',
                 'ethereum': 'Ethereum',
+                'bnb': 'BNB',
                 'ripple': 'XRP',
-                'hyperliquid': 'Hype'
+                'solana': 'Solana',
+                'tron': 'TRX',
+                'hyperliquid': 'Hype',
+                'litecoin': 'Litecoin',
+                'spx': 'S&P 500',
+                'ndx': 'NASDAQ',
+                'uko': 'UKO',
+                'xau': 'XAU',
+                'xag': 'XAG'
             };
             return map[coinId] || coinId;
         }
@@ -558,7 +576,6 @@
             const labels = prices.map(p => formatDate(p[0]));
             const values = prices.map(p => p[1]);
 
-            // Сохраняем данные для интерактива
             window._chartPrices = prices;
             window._chartLabels = labels;
             window._chartValues = values;
@@ -625,7 +642,6 @@
                 }
             });
 
-            // Добавляем кастомные линии при касании
             const canvas = document.getElementById('priceChart');
             const container = document.getElementById('chartContainer');
 
@@ -640,7 +656,6 @@
                     const xAxis = chart.scales.x;
                     const yAxis = chart.scales.y;
 
-                    // Находим ближайшую точку данных
                     const chartArea = chart.chartArea;
                     const xRatio = (x - chartArea.left) / (chartArea.right - chartArea.left);
                     const dataIndex = Math.round(xRatio * (window._chartValues.length - 1));
@@ -653,7 +668,6 @@
                     isTouching = true;
                     touchPrice = price;
 
-                    // Рисуем линии
                     drawCrosshair(clampedIndex);
                 }
             }, { passive: false });
@@ -689,17 +703,14 @@
                 priceEl.classList.remove('touch');
                 isTouching = false;
                 touchPrice = 0;
-                // Очищаем линии
                 drawCrosshair(-1);
             }, { passive: false });
 
-            // Функция рисования перекрестия
             function drawCrosshair(index) {
                 const canvas2 = document.getElementById('priceChart');
                 const ctx2 = canvas2.getContext('2d');
                 const chartArea = chart.chartArea;
 
-                // Очищаем только область графика
                 ctx2.clearRect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
                 chart.draw();
 
@@ -712,7 +723,6 @@
                 const xPos = xScale.getPixelForValue(index);
                 const yPos = yScale.getPixelForValue(window._chartValues[index]);
 
-                // Вертикальная линия
                 ctx2.beginPath();
                 ctx2.moveTo(xPos, chartArea.top);
                 ctx2.lineTo(xPos, chartArea.bottom);
@@ -722,7 +732,6 @@
                 ctx2.stroke();
                 ctx2.setLineDash([]);
 
-                // Горизонтальная линия
                 ctx2.beginPath();
                 ctx2.moveTo(chartArea.left, yPos);
                 ctx2.lineTo(chartArea.right, yPos);
@@ -732,7 +741,6 @@
                 ctx2.stroke();
                 ctx2.setLineDash([]);
 
-                // Точка на графике
                 ctx2.beginPath();
                 ctx2.arc(xPos, yPos, 4, 0, 2 * Math.PI);
                 ctx2.fillStyle = '#ffc107';
@@ -741,7 +749,6 @@
                 ctx2.lineWidth = 1;
                 ctx2.stroke();
 
-                // Подпись цены у горизонтальной линии
                 const priceText = '$' + window._chartValues[index].toFixed(2);
                 ctx2.font = '12px Arial';
                 ctx2.fillStyle = '#ffc107';
@@ -750,7 +757,6 @@
                 ctx2.fillText(priceText, chartArea.right - 8, yPos - 6);
             }
 
-            // Обновляем currentPrice
             if (prices.length > 0) {
                 currentPrice = prices[prices.length - 1][1];
             }
@@ -835,18 +841,29 @@
         const coins = [
             { id: 'bitcoin', name: 'Bitcoin', symbol: 'btc', icon: '₿' },
             { id: 'ethereum', name: 'Ethereum', symbol: 'eth', icon: '⟠' },
+            { id: 'bnb', name: 'BNB', symbol: 'bnb', icon: 'B' },
             { id: 'ripple', name: 'XRP', symbol: 'xrp', icon: '✕' },
-            { id: 'hyperliquid', name: 'Hype', symbol: 'hype', icon: '◆' }
+            { id: 'solana', name: 'Solana', symbol: 'sol', icon: '◎' },
+            { id: 'tron', name: 'TRX', symbol: 'trx', icon: 'T' },
+            { id: 'hyperliquid', name: 'Hype', symbol: 'hype', icon: '◆' },
+            { id: 'litecoin', name: 'Litecoin', symbol: 'ltc', icon: 'Ł' },
+            { id: 'spx', name: 'S&P 500', symbol: 'spx', icon: 'S' },
+            { id: 'ndx', name: 'NASDAQ', symbol: 'ndx', icon: 'N' },
+            { id: 'uko', name: 'UKO', symbol: 'uko', icon: 'U' },
+            { id: 'xau', name: 'XAU', symbol: 'xau', icon: 'Au' },
+            { id: 'xag', name: 'XAG', symbol: 'xag', icon: 'Ag' }
         ];
 
         let coinCache = null;
 
+        // Функция получения данных для монет с учётом разных ID
         async function fetchCoinData() {
             try {
                 if (coinCache) {
                     renderCoins(coinCache);
                 }
 
+                // Для каждой монеты свой запрос, так как CoinGecko не поддерживает все сразу
                 const ids = coins.map(c => c.id).join(',');
                 const url =
                     `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
@@ -870,7 +887,26 @@
 
             coins.forEach((coin, index) => {
                 const info = data[coin.id];
-                if (!info) return;
+                if (!info) {
+                    // Если данные не загрузились, показываем прочерк
+                    const item = document.createElement('div');
+                    item.className = 'coin-item';
+                    item.innerHTML = `
+                        <span class="coin-number">${index + 1}</span>
+                        <div class="coin-icon ${coin.symbol}">${coin.icon}</div>
+                        <div class="coin-info">
+                            <div class="coin-name">${coin.name}</div>
+                            <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
+                        </div>
+                        <div class="coin-price">--</div>
+                        <div class="coin-change-24h" style="color:rgba(255,255,255,0.3);">--</div>
+                    `;
+                    item.addEventListener('click', function() {
+                        openChartPage(coin.id);
+                    });
+                    list.appendChild(item);
+                    return;
+                }
 
                 const price = info.usd;
                 const change24h = info.usd_24h_change || 0;
