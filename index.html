@@ -185,18 +185,6 @@
         .coin-change-7d.green { color: #4caf50; }
         .coin-change-7d.red { color: #f44336; }
 
-        .coin-sparkline {
-            width: 40px;
-            height: 24px;
-            flex-shrink: 0;
-            margin-left: 4px;
-        }
-
-        .coin-sparkline svg {
-            width: 100%;
-            height: 100%;
-        }
-
         .loading {
             color: rgba(255, 255, 255, 0.5);
             text-align: center;
@@ -309,7 +297,6 @@
         </div>
     </div>
 
-    <!-- ===== ПРОФИЛЬ ===== -->
     <div id="profilePage">
         <div class="profile-card">
             <div class="profile-row">
@@ -392,31 +379,6 @@
             }
         }
 
-        // ===== ФУНКЦИЯ ДЛЯ МИНИ-ГРАФИКА =====
-        function generateSparkline(data, change) {
-            if (!data || data.length === 0) {
-                return `<svg viewBox="0 0 40 24"><line x1="0" y1="12" x2="40" y2="12" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></svg>`;
-            }
-            
-            const min = Math.min(...data);
-            const max = Math.max(...data);
-            const range = max - min || 1;
-            const height = 24;
-            const width = 40;
-            
-            let points = data.map((val, i) => {
-                const x = (i / (data.length - 1)) * width;
-                const y = height - ((val - min) / range) * height * 0.8 - 2;
-                return `${x.toFixed(1)},${y.toFixed(1)}`;
-            }).join(' ');
-            
-            const color = change >= 0 ? '#4caf50' : '#f44336';
-            
-            return `<svg viewBox="0 0 40 24">
-                <polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>`;
-        }
-
         // ===== МОНЕТЫ =====
         const coins = [
             { id: 'bitcoin', name: 'Bitcoin', symbol: 'btc', icon: '₿' },
@@ -424,23 +386,6 @@
             { id: 'ripple', name: 'XRP', symbol: 'xrp', icon: '✕' },
             { id: 'hyperliquid', name: 'Hype', symbol: 'hype', icon: '◆' }
         ];
-
-        // Кеш для исторических данных
-        let historyCache = {};
-
-        async function fetchHistory(coinId) {
-            try {
-                const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=7`;
-                const response = await fetch(url);
-                const data = await response.json();
-                if (data.prices) {
-                    return data.prices.map(p => p[1]);
-                }
-                return null;
-            } catch (e) {
-                return null;
-            }
-        }
 
         async function fetchCoinData() {
             try {
@@ -450,16 +395,6 @@
                 const response = await fetch(url);
                 const data = await response.json();
 
-                // Загружаем историю для каждой монеты
-                for (const coin of coins) {
-                    if (!historyCache[coin.id]) {
-                        const hist = await fetchHistory(coin.id);
-                        if (hist) {
-                            historyCache[coin.id] = hist;
-                        }
-                    }
-                }
-
                 const list = document.getElementById('coinsList');
                 list.innerHTML = '';
 
@@ -468,17 +403,14 @@
                     if (!info) return;
 
                     const price = info.usd;
-                    const change24h = info.usd_24h_change;
-                    const change7d = info.usd_7d_change;
+                    const change24h = info.usd_24h_change || 0;
+                    const change7d = info.usd_7d_change || 0;
 
                     const change24hClass = change24h >= 0 ? 'green' : 'red';
                     const change24hText = (change24h >= 0 ? '+' : '') + change24h.toFixed(2) + '%';
 
                     const change7dClass = change7d >= 0 ? 'green' : 'red';
                     const change7dText = (change7d >= 0 ? '+' : '') + change7d.toFixed(2) + '%';
-
-                    const histData = historyCache[coin.id] || [];
-                    const sparkline = generateSparkline(histData, change24h);
 
                     const item = document.createElement('div');
                     item.className = 'coin-item';
@@ -492,7 +424,6 @@
                         <div class="coin-price">$${price.toFixed(2)}</div>
                         <div class="coin-change-24h ${change24hClass}">${change24hText}</div>
                         <div class="coin-change-7d ${change7dClass}">${change7dText}</div>
-                        <div class="coin-sparkline">${sparkline}</div>
                     `;
                     item.addEventListener('click', function() {
                         if (coin.id === 'bitcoin') {
