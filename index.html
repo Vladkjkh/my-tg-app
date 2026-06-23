@@ -255,7 +255,8 @@
 
         #chartPage .timeframes {
             display: flex;
-            gap: 8px;
+            flex-wrap: wrap;
+            gap: 6px;
             justify-content: center;
             padding: 8px 0 12px 0;
             flex-shrink: 0;
@@ -266,9 +267,9 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px;
             color: rgba(255, 255, 255, 0.6);
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
-            padding: 6px 16px;
+            padding: 5px 12px;
             cursor: pointer;
             transition: 0.2s;
         }
@@ -398,11 +399,14 @@
         <div class="chart-container">
             <canvas id="priceChart"></canvas>
         </div>
-        <div class="timeframes">
-            <button class="timeframe-btn" data-days="1">1д</button>
-            <button class="timeframe-btn active" data-days="7">7д</button>
-            <button class="timeframe-btn" data-days="30">30д</button>
-            <button class="timeframe-btn" data-days="90">90д</button>
+        <div class="timeframes" id="timeframesContainer">
+            <button class="timeframe-btn" data-days="0.166">4ч</button>
+            <button class="timeframe-btn" data-days="0.5">12ч</button>
+            <button class="timeframe-btn active" data-days="1">1д</button>
+            <button class="timeframe-btn" data-days="7">1н</button>
+            <button class="timeframe-btn" data-days="30">1м</button>
+            <button class="timeframe-btn" data-days="90">3м</button>
+            <button class="timeframe-btn" data-days="180">6м</button>
         </div>
     </div>
 
@@ -492,7 +496,7 @@
         // ===== ГРАФИК =====
         let chart = null;
         let currentCoinId = 'bitcoin';
-        let currentDays = 7;
+        let currentDays = 1;
         let updateInterval = null;
 
         function getCoinDisplayName(coinId) {
@@ -625,6 +629,11 @@
             document.getElementById('chartPage').style.display = 'flex';
             document.getElementById('chartCoinTitle').textContent = getCoinDisplayName(coinId);
 
+            // Сбрасываем активную кнопку на 1д
+            document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.timeframe-btn[data-days="1"]').classList.add('active');
+            currentDays = 1;
+
             updateChart(coinId, currentDays);
 
             if (updateInterval) {
@@ -649,7 +658,7 @@
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
-                currentDays = parseInt(this.dataset.days);
+                currentDays = parseFloat(this.dataset.days);
                 updateChart(currentCoinId, currentDays);
             });
         });
