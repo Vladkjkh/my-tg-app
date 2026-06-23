@@ -363,12 +363,52 @@
             changeEl.textContent = changeText;
             changeEl.className = 'chart-change ' + changeClass;
 
+            // Сохраняем состояние графика в localStorage
+            const savedState = localStorage.getItem('tradingview_state');
             const frame = document.getElementById('tradingviewFrame');
+            
+            // Убираем плюсик и включаем сохранение рисунков
             frame.src =
-                `https://s.tradingview.com/widgetembed/?hideideas=0&symbol=BINANCE:BTCUSDT&interval=1D&theme=dark&style=1&locale=ru&allow_symbol_change=0&hide_volume=0&hide_side_toolbar=0&hide_top_toolbar=0&save_image=1&studies=RSI%2CMACD&widget_lang=ru`;
+                `https://s.tradingview.com/widgetembed/?hideideas=1&symbol=BINANCE:BTCUSDT&interval=1D&theme=dark&style=1&locale=ru&allow_symbol_change=0&hide_volume=0&hide_side_toolbar=0&hide_top_toolbar=0&save_image=1&studies=RSI%2CMACD&widget_lang=ru&hide_button=1&hide_watchlist=1&hide_news=1&hide_quick_links=1&hide_alert=1&hide_alert_button=1`;
+            
+            // Если есть сохранённое состояние, восстанавливаем его
+            if (savedState) {
+                setTimeout(() => {
+                    try {
+                        const state = JSON.parse(savedState);
+                        // Применяем сохранённое состояние через postMessage
+                        frame.contentWindow.postMessage({
+                            name: 'restore',
+                            data: state
+                        }, '*');
+                    } catch(e) {
+                        console.log('Ошибка восстановления состояния');
+                    }
+                }, 2000);
+            }
         }
 
+        // Сохраняем состояние графика перед закрытием
         document.getElementById('backFromBtc').addEventListener('click', function() {
+            const frame = document.getElementById('tradingviewFrame');
+            try {
+                // Сохраняем текущее состояние в localStorage
+                frame.contentWindow.postMessage({
+                    name: 'save',
+                    data: {}
+                }, '*');
+                
+                // Ждём ответ и сохраняем
+                window.addEventListener('message', function handler(event) {
+                    if (event.data && event.data.name === 'save') {
+                        localStorage.setItem('tradingview_state', JSON.stringify(event.data.data));
+                        window.removeEventListener('message', handler);
+                    }
+                });
+            } catch(e) {
+                console.log('Ошибка сохранения состояния');
+            }
+            
             document.getElementById('btcPage').style.display = 'none';
             document.getElementById('appContainer').style.display = 'flex';
         });
