@@ -557,7 +557,72 @@
             throw new Error('Не удалось загрузить данные');
         }
 
+        // ===== ФУНКЦИЯ ДЛЯ ЯХУ ФИНАНС =====
+        async function fetchYahooData(symbol) {
+            try {
+                const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`;
+                const data = await fetchWithRetry(url);
+                const result = data.quoteResponse.result[0];
+                if (!result) return null;
+                return {
+                    price: result.regularMarketPrice,
+                    change: result.regularMarketChangePercent
+                };
+            } catch (e) {
+                console.log('Yahoo ошибка:', e);
+                return null;
+            }
+        }
+
+        // ===== УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ДЛЯ ЦЕН =====
+        async function fetchPriceData(coinId) {
+            // Криптовалюты через CoinGecko
+            const cryptoIds = ['bitcoin', 'ethereum', 'binancecoin', 'ripple', 'solana', 'tron', 'hyperliquid', 'litecoin'];
+            if (cryptoIds.includes(coinId)) {
+                try {
+                    const url =
+                        `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true`;
+                    const data = await fetchWithRetry(url);
+                    const info = data[coinId];
+                    if (!info) return null;
+                    return {
+                        price: info.usd,
+                        change: info.usd_24h_change || 0
+                    };
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            // Индексы и металлы через Yahoo Finance
+            const yahooMap = {
+                'spx': '^GSPC',
+                'ndx': '^IXIC',
+                'uko': 'BZ=F',
+                'xau': 'GC=F',
+                'xag': 'SI=F'
+            };
+
+            if (yahooMap[coinId]) {
+                const data = await fetchYahooData(yahooMap[coinId]);
+                if (data) {
+                    return {
+                        price: data.price,
+                        change: data.change
+                    };
+                }
+            }
+
+            return null;
+        }
+
         async function fetchChartData(coinId, days) {
+            // Для Yahoo-активов график не строим (возвращаем пустой массив)
+            const yahooIds = ['spx', 'ndx', 'uko', 'xau', 'xag'];
+            if (yahooIds.includes(coinId)) {
+                return [];
+            }
+
             try {
                 let actualDays = days;
                 if (days === 180) actualDays = 90;
@@ -573,6 +638,33 @@
         }
 
         function drawLineChart(ctx, prices) {
+            if (prices.length === 0) {
+                // Если нет данных, показываем пустой график
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Нет данных'],
+                        datasets: [{
+                            data: [0],
+                            borderColor: 'rgba(255,255,255,0.2)',
+                            backgroundColor: 'rgba(255,255,255,0.05)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.4)' } },
+                            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.4)' } }
+                        }
+                    }
+                });
+                return;
+            }
+
             const labels = prices.map(p => formatDate(p[0]));
             const values = prices.map(p => p[1]);
 
@@ -643,7 +735,6 @@
             });
 
             const canvas = document.getElementById('priceChart');
-            const container = document.getElementById('chartContainer');
 
             canvas.addEventListener('touchstart', function(e) {
                 e.preventDefault();
@@ -652,10 +743,7 @@
                 const x = touch.clientX - rect.left;
                 const y = touch.clientY - rect.top;
 
-                if (chart) {
-                    const xAxis = chart.scales.x;
-                    const yAxis = chart.scales.y;
-
+                if (chart && window._chartValues && window._chartValues.length > 0) {
                     const chartArea = chart.chartArea;
                     const xRatio = (x - chartArea.left) / (chartArea.right - chartArea.left);
                     const dataIndex = Math.round(xRatio * (window._chartValues.length - 1));
@@ -679,7 +767,7 @@
                 const x = touch.clientX - rect.left;
                 const y = touch.clientY - rect.top;
 
-                if (chart) {
+                if (chart && window._chartValues && window._chartValues.length > 0) {
                     const chartArea = chart.chartArea;
                     const xRatio = (x - chartArea.left) / (chartArea.right - chartArea.left);
                     const dataIndex = Math.round(xRatio * (window._chartValues.length - 1));
@@ -765,24 +853,22 @@
         async function updateChart(coinId, days) {
             const prices = await fetchChartData(coinId, days);
 
-            if (prices.length === 0) {
-                return;
-            }
+            const priceData = await fetchPriceData(coinId);
+            if (priceData) {
+                currentPrice = priceData.price;
+                const change = priceData.change;
+                const changeClass = change >= 0 ? 'green' : 'red';
+                const changeText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
 
-            currentPrice = prices[prices.length - 1][1];
-            const prevPrice = prices[0][1];
-            const change = prevPrice !== 0 ? ((currentPrice - prevPrice) / prevPrice * 100) : 0;
-            const changeClass = change >= 0 ? 'green' : 'red';
-            const changeText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
-
-            const priceEl = document.getElementById('chartPriceDisplay');
-            if (!isTouching) {
-                priceEl.textContent = '$' + currentPrice.toFixed(2);
-                priceEl.classList.remove('touch');
+                const priceEl = document.getElementById('chartPriceDisplay');
+                if (!isTouching) {
+                    priceEl.textContent = '$' + currentPrice.toFixed(2);
+                    priceEl.classList.remove('touch');
+                }
+                const changeEl = document.getElementById('chartChangeDisplay');
+                changeEl.textContent = changeText;
+                changeEl.className = 'chart-change-display ' + changeClass;
             }
-            const changeEl = document.getElementById('chartChangeDisplay');
-            changeEl.textContent = changeText;
-            changeEl.className = 'chart-change-display ' + changeClass;
 
             const ctx = document.getElementById('priceChart').getContext('2d');
 
@@ -862,12 +948,19 @@
                     renderCoins(coinCache);
                 }
 
-                const ids = coins.map(c => c.id).join(',');
-                const url =
-                    `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
-                const data = await fetchWithRetry(url);
-                coinCache = data;
-                renderCoins(data);
+                // Собираем данные для всех монет
+                const results = {};
+                for (const coin of coins) {
+                    const data = await fetchPriceData(coin.id);
+                    if (data) {
+                        results[coin.id] = {
+                            usd: data.price,
+                            usd_24h_change: data.change
+                        };
+                    }
+                }
+                coinCache = results;
+                renderCoins(results);
 
             } catch (e) {
                 console.log('Ошибка загрузки данных монет:', e);
@@ -915,24 +1008,4 @@
                 item.className = 'coin-item';
                 item.innerHTML = `
                         <span class="coin-number">${index + 1}</span>
-                        <div class="coin-icon ${coin.symbol}">${coin.icon}</div>
-                        <div class="coin-info">
-                            <div class="coin-name">${coin.name}</div>
-                            <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
-                        </div>
-                        <div class="coin-price">$${price.toFixed(2)}</div>
-                        <div class="coin-change-24h ${change24hClass}">${change24hText}</div>
-                    `;
-                item.addEventListener('click', function() {
-                    openChartPage(coin.id);
-                });
-                list.appendChild(item);
-            });
-        }
-
-        fetchCoinData();
-        setInterval(fetchCoinData, 60000);
-    </script>
-
-</body>
-</html>
+                        <div class="coin-icon ${coin.symbol}">${coin
