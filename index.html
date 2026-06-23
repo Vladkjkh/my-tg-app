@@ -418,7 +418,6 @@
             <button class="timeframe-btn" data-days="90">3м</button>
             <button class="timeframe-btn" data-days="180">6м</button>
             <button class="timeframe-btn" data-days="365">1г</button>
-            <button class="timeframe-btn" data-days="max">Всё время</button>
         </div>
     </div>
 
@@ -532,11 +531,6 @@
             return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
         }
 
-        function formatDateFull(timestamp) {
-            const date = new Date(timestamp);
-            return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        }
-
         async function fetchWithRetry(url, retries = 3) {
             for (let i = 0; i < retries; i++) {
                 try {
@@ -555,10 +549,7 @@
         async function fetchChartData(coinId, days) {
             try {
                 let actualDays = days;
-                // Для 1 года и 6 месяцев используем 365 дней
                 if (days === 365 || days === 180) actualDays = Math.min(days, 365);
-                // Для "всё время" используем максимальное значение 365 дней
-                if (days === 'max') actualDays = 365;
 
                 const url =
                     `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${actualDays}`;
@@ -573,8 +564,7 @@
         function drawLineChart(ctx, prices) {
             const labels = prices.map(p => {
                 const date = new Date(p[0]);
-                // Для длинных периодов показываем месяц и год
-                if (currentDays >= 180 || currentDays === 'max') {
+                if (currentDays >= 180) {
                     return date.toLocaleDateString('ru-RU', { month: 'short', year: 'numeric' });
                 }
                 return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
@@ -840,7 +830,7 @@
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
-                currentDays = this.dataset.days;
+                currentDays = parseFloat(this.dataset.days);
                 isTouching = false;
                 touchPrice = 0;
                 updateChart(currentCoinId, currentDays);
