@@ -406,7 +406,7 @@
             <button class="timeframe-btn" data-days="7">1н</button>
             <button class="timeframe-btn" data-days="30">1м</button>
             <button class="timeframe-btn" data-days="90">3м</button>
-            <button class="timeframe-btn" data-days="180">6м</button>
+            <button class="timeframe-btn" data-days="90">6м</button>
         </div>
     </div>
 
@@ -531,8 +531,12 @@
 
         async function fetchChartData(coinId, days) {
             try {
+                // Для 6м используем 90 дней (максимум в бесплатном API)
+                let actualDays = days;
+                if (days === 180) actualDays = 90;
+
                 const url =
-                    `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`;
+                    `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${actualDays}`;
                 const data = await fetchWithRetry(url);
                 return data.prices || [];
             } catch (e) {
