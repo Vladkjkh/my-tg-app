@@ -48,15 +48,15 @@
             width: 100%;
             max-width: 420px;
             height: 100vh;
-            padding: 20px 16px 16px 16px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
         }
 
+        /* ВЕРХНИЕ КНОПКИ */
         .top-buttons {
             display: flex;
             gap: 8px;
+            padding: 20px 16px 0 16px;
             flex-shrink: 0;
         }
 
@@ -83,11 +83,17 @@
             background: rgba(255, 255, 255, 0.2);
         }
 
+        /* ОСНОВНОЙ КОНТЕНТ */
+        .content {
+            flex: 1;
+            overflow: hidden;
+            padding: 10px 16px 0 16px;
+        }
+
         #mainPage {
             display: flex;
             flex-direction: column;
-            flex: 1;
-            overflow: hidden;
+            height: 100%;
         }
 
         .coins-list {
@@ -96,7 +102,6 @@
             display: flex;
             flex-direction: column;
             gap: 4px;
-            padding-top: 10px;
             padding-bottom: 10px;
         }
 
@@ -182,172 +187,118 @@
             font-size: 14px;
         }
 
-        /* СТРАНИЦА АВТОРИЗАЦИИ */
-        #authPage {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #0a0e27;
-            z-index: 1000;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 30px;
+        /* НИЖНИЕ КНОПКИ */
+        .bottom-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 16px 16px 16px;
+            flex-shrink: 0;
+            gap: 12px;
         }
 
-        #authPage h2 {
-            color: #fff;
-            font-size: 24px;
-            margin-bottom: 30px;
-        }
-
-        #authPage input {
-            width: 100%;
-            max-width: 280px;
-            padding: 14px 18px;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.15);
-            background: rgba(255,255,255,0.05);
-            color: #fff;
-            font-size: 16px;
-            outline: none;
-            text-align: center;
-        }
-
-        #authPage input:focus {
-            border-color: #f7931a;
-        }
-
-        #authPage .auth-btn {
-            margin-top: 16px;
-            width: 100%;
-            max-width: 280px;
-            padding: 14px;
+        .bottom-btn {
+            flex: 1;
+            padding: 12px 0;
             border-radius: 12px;
             border: none;
-            background: #f7931a;
-            color: #fff;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
             cursor: pointer;
             transition: 0.2s;
+            text-align: center;
         }
 
-        #authPage .auth-btn:active {
-            transform: scale(0.95);
-            opacity: 0.8;
-        }
-
-        #authPage .error-msg {
-            color: #f44336;
-            font-size: 14px;
-            margin-top: 12px;
-            display: none;
-        }
-
-        /* СТРАНИЦА БИТКОИНА */
-        #btcPage {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #0a0e27;
-            z-index: 999;
-            flex-direction: column;
-            padding: 12px;
-        }
-
-        #btcPage .back-btn {
-            position: absolute;
-            top: 16px;
-            left: 16px;
-            z-index: 10;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: #fff;
-            font-size: 20px;
-            padding: 6px 14px;
-            border-radius: 20px;
-            cursor: pointer;
-            backdrop-filter: blur(4px);
-        }
-
-        #btcPage .back-btn:active {
+        .bottom-btn:active {
             transform: scale(0.95);
             opacity: 0.7;
         }
 
-        #btcPage .chart-container {
-            flex: 1;
-            width: 100%;
-            min-height: 0;
-            border-radius: 12px;
-            overflow: hidden;
-            background: #0a0e27;
-            margin-top: 50px;
+        .btn-home {
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        #btcPage .chart-container iframe {
+        .btn-profile {
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* СТРАНИЦА ПРОФИЛЯ - КРАСНЫЙ ЭКРАН */
+        #profilePage {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            border: none;
-            background: #0a0e27;
+            background: #8b0000;
+            z-index: 999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
 
-        #btcPage .chart-price {
+        #profilePage .profile-title {
             color: #fff;
-            font-size: 28px;
+            font-size: 32px;
             font-weight: bold;
-            text-align: center;
-            margin-top: 50px;
         }
-        #btcPage .chart-change {
-            text-align: center;
+
+        #profilePage .profile-sub {
+            color: rgba(255, 255, 255, 0.6);
             font-size: 16px;
-            font-weight: 600;
+            margin-top: 12px;
         }
-        #btcPage .chart-change.green { color: #4caf50; }
-        #btcPage .chart-change.red { color: #f44336; }
+
+        #profilePage .close-profile {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
     <div class="app" id="appContainer">
+        <!-- ВЕРХНИЕ КНОПКИ -->
         <div class="top-buttons">
             <button class="top-btn" id="indicatorsBtn">Индикаторы</button>
             <button class="top-btn" id="chartsBtn">Графики</button>
         </div>
 
-        <div id="mainPage">
-            <div class="coins-list" id="coinsList">
-                <div class="loading">Загрузка данных...</div>
+        <!-- КОНТЕНТ -->
+        <div class="content">
+            <div id="mainPage">
+                <div class="coins-list" id="coinsList">
+                    <div class="loading">Загрузка данных...</div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- СТРАНИЦА АВТОРИЗАЦИИ -->
-    <div id="authPage">
-        <h2>Введите пароль</h2>
-        <input type="password" id="authInput" placeholder="Введите пароль">
-        <button class="auth-btn" id="authBtn">Войти</button>
-        <div class="error-msg" id="authError">Неверный пароль</div>
-    </div>
-
-    <!-- СТРАНИЦА БИТКОИНА -->
-    <div id="btcPage">
-        <button class="back-btn" id="backFromBtc">←</button>
-
-        <div class="chart-price" id="chartPrice">$0.00</div>
-        <div class="chart-change" id="chartChange">+0.00%</div>
-
-        <div class="chart-container" id="chartContainer">
-            <iframe id="tradingviewFrame" src=""></iframe>
+        <!-- НИЖНИЕ КНОПКИ -->
+        <div class="bottom-bar">
+            <button class="bottom-btn btn-home" id="homeBtn">На главную</button>
+            <button class="bottom-btn btn-profile" id="profileBtn">Профиль</button>
         </div>
+    </div>
+
+    <!-- СТРАНИЦА ПРОФИЛЯ -->
+    <div id="profilePage">
+        <button class="close-profile" id="closeProfile">✕</button>
+        <div class="profile-title">Профиль</div>
+        <div class="profile-sub">Красный экран</div>
     </div>
 
     <script>
@@ -365,20 +316,33 @@
             tg.close();
         });
 
+        // КНОПКА НА ГЛАВНУЮ
+        document.getElementById('homeBtn').addEventListener('click', function() {
+            // Показываем главную страницу
+            document.getElementById('mainPage').style.display = 'flex';
+            // Если профиль открыт — закрываем
+            document.getElementById('profilePage').style.display = 'none';
+            // Показываем контейнер
+            document.getElementById('appContainer').style.display = 'flex';
+        });
+
+        // КНОПКА ПРОФИЛЬ
+        document.getElementById('profileBtn').addEventListener('click', function() {
+            document.getElementById('profilePage').style.display = 'flex';
+            document.getElementById('appContainer').style.display = 'none';
+        });
+
+        document.getElementById('closeProfile').addEventListener('click', function() {
+            document.getElementById('profilePage').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'flex';
+        });
+
         const coins = [
             { id: 'bitcoin', name: 'Bitcoin', symbol: 'btc', icon: '₿' },
             { id: 'ethereum', name: 'Ethereum', symbol: 'eth', icon: '⟠' },
             { id: 'ripple', name: 'XRP', symbol: 'xrp', icon: '✕' },
             { id: 'hyperliquid', name: 'Hype', symbol: 'hype', icon: '◆' }
         ];
-
-        let btcPrice = 0;
-        let btcChange = 0;
-        let currentUser = null;
-        let frameLoaded = false;
-
-        // Получаем ID пользователя Telegram
-        const userId = tg.initDataUnsafe?.user?.id || 'guest';
 
         async function fetchCoinData() {
             try {
@@ -400,11 +364,6 @@
                     const changeClass = change >= 0 ? 'green' : 'red';
                     const changeText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
 
-                    if (coin.id === 'bitcoin') {
-                        btcPrice = price;
-                        btcChange = change;
-                    }
-
                     const item = document.createElement('div');
                     item.className = 'coin-item';
                     item.innerHTML = `
@@ -419,7 +378,8 @@
                     `;
                     item.addEventListener('click', function() {
                         if (coin.id === 'bitcoin') {
-                            showAuthPage();
+                            tg.sendData('bitcoin');
+                            tg.close();
                         }
                     });
                     list.appendChild(item);
@@ -430,107 +390,8 @@
             }
         }
 
-        function showAuthPage() {
-            document.getElementById('appContainer').style.display = 'none';
-            document.getElementById('authPage').style.display = 'flex';
-            document.getElementById('authInput').value = '';
-            document.getElementById('authInput').focus();
-            document.getElementById('authError').style.display = 'none';
-        }
-
-        document.getElementById('authBtn').addEventListener('click', function() {
-            const password = document.getElementById('authInput').value.trim();
-            
-            if (!password) {
-                document.getElementById('authError').textContent = 'Введите пароль';
-                document.getElementById('authError').style.display = 'block';
-                return;
-            }
-
-            // Сохраняем пользователя с его паролем
-            currentUser = password;
-            localStorage.setItem('user_' + userId, password);
-            
-            document.getElementById('authPage').style.display = 'none';
-            openBtcPage();
-        });
-
-        document.getElementById('authInput').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('authBtn').click();
-            }
-        });
-
-        function openBtcPage() {
-            document.getElementById('btcPage').style.display = 'flex';
-
-            const changeClass = btcChange >= 0 ? 'green' : 'red';
-            const changeText = (btcChange >= 0 ? '+' : '') + btcChange.toFixed(2) + '%';
-
-            document.getElementById('chartPrice').textContent = '$' + btcPrice.toFixed(2);
-            const changeEl = document.getElementById('chartChange');
-            changeEl.textContent = changeText;
-            changeEl.className = 'chart-change ' + changeClass;
-
-            const frame = document.getElementById('tradingviewFrame');
-            
-            // Загружаем график
-            frame.src =
-                `https://s.tradingview.com/widgetembed/?hideideas=1&symbol=BINANCE:BTCUSDT&interval=1D&theme=dark&style=1&locale=ru&allow_symbol_change=0&hide_volume=0&hide_side_toolbar=0&hide_top_toolbar=0&save_image=1&studies=RSI%2CMACD&widget_lang=ru&hide_button=1&hide_watchlist=1&hide_news=1&hide_quick_links=1&hide_alert=1&hide_alert_button=1`;
-
-            // Восстанавливаем сохранённое состояние пользователя
-            const savedState = localStorage.getItem('chart_state_' + userId + '_' + currentUser);
-            if (savedState) {
-                setTimeout(() => {
-                    try {
-                        const state = JSON.parse(savedState);
-                        frame.contentWindow.postMessage({
-                            name: 'restore',
-                            data: state
-                        }, '*');
-                    } catch(e) {
-                        console.log('Ошибка восстановления');
-                    }
-                }, 3000);
-            }
-        }
-
-        // Сохраняем состояние перед выходом
-        document.getElementById('backFromBtc').addEventListener('click', function() {
-            const frame = document.getElementById('tradingviewFrame');
-            
-            // Сохраняем состояние
-            try {
-                const state = {
-                    savedAt: Date.now(),
-                    user: currentUser
-                };
-                localStorage.setItem('chart_state_' + userId + '_' + currentUser, JSON.stringify(state));
-            } catch(e) {
-                console.log('Ошибка сохранения');
-            }
-            
-            document.getElementById('btcPage').style.display = 'none';
-            document.getElementById('appContainer').style.display = 'flex';
-            
-            // Очищаем состояние пользователя
-            currentUser = null;
-        });
-
-        // Проверяем, есть ли сохранённый пароль при открытии приложения
-        function checkSavedPassword() {
-            const savedPassword = localStorage.getItem('user_' + userId);
-            if (savedPassword) {
-                // Автоматически входим
-                currentUser = savedPassword;
-                // Но сначала показываем главную страницу
-                document.getElementById('appContainer').style.display = 'flex';
-            }
-        }
-
         fetchCoinData();
         setInterval(fetchCoinData, 60000);
-        checkSavedPassword();
     </script>
 
 </body>
