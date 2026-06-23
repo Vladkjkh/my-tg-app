@@ -6,6 +6,7 @@
     <title>Приложение</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial"></script>
     <style>
         * {
             margin: 0;
@@ -216,6 +217,38 @@
             opacity: 0.7;
         }
 
+        /* КНОПКИ ТИПА ГРАФИКА СПРАВА СВЕРХУ */
+        .chart-type-buttons {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 10;
+            display: flex;
+            gap: 6px;
+        }
+
+        .chart-type-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 6px 10px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .chart-type-btn.active {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .chart-type-btn:active {
+            transform: scale(0.95);
+        }
+
         #chartPage .chart-header {
             color: #fff;
             font-size: 20px;
@@ -391,6 +424,12 @@
     <!-- ===== СТРАНИЦА ГРАФИКА ===== -->
     <div id="chartPage">
         <button class="back-btn" id="backFromChart">←</button>
+
+        <div class="chart-type-buttons">
+            <button class="chart-type-btn active" id="lineChartBtn">Линия</button>
+            <button class="chart-type-btn" id="candleChartBtn">Свечи</button>
+        </div>
+
         <div class="chart-header" id="chartCoinTitle">Bitcoin</div>
         <div class="chart-price-display" id="chartPriceDisplay">$0.00</div>
         <div class="chart-change-display" id="chartChangeDisplay">+0.00%</div>
@@ -492,6 +531,7 @@
         let chart = null;
         let currentCoinId = 'bitcoin';
         let currentDays = 7;
+        let chartType = 'line';
         let updateInterval = null;
 
         function getCoinDisplayName(coinId) {
@@ -504,19 +544,14 @@
             return map[coinId] || coinId;
         }
 
-        function getCoinSymbol(coinId) {
-            const map = {
-                'bitcoin': 'BTC',
-                'ethereum': 'ETH',
-                'ripple': 'XRP',
-                'hyperliquid': 'HYPE'
-            };
-            return map[coinId] || coinId.toUpperCase();
-        }
-
         function formatDate(timestamp) {
             const date = new Date(timestamp);
             return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+        }
+
+        function formatDateFull(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
         }
 
         async function fetchChartData(coinId, days) {
@@ -532,18 +567,39 @@
             }
         }
 
-        async function updateChart(coinId, days) {
+        async function fetchCandleData(coinId, days) {
+            try {
+                // Для свечей используем те же данные, но группируем по дням
+                const url =
+                    `https://api.coingecko.com/api/v3/coins/${coinId}/ohlc?vs_currency=usd&days=${days}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                return data || [];
+            } catch (e) {
+                console.log('Ошибка загрузки свечных данных:', e);
+                return [];
+            }
+        }
+
+        function buildCandles(ohlcData) {
+            return ohlcData.map(item => ({
+                x: new Date(item[0]),
+                o: item[1],
+                h: item[2],
+                l: item[3],
+                c: item[4]
+            }));
+        }
+
+        async function updateChart(coinId, days, type) {
             const prices = await fetchChartData(coinId, days);
-            
+
             if (prices.length === 0) {
                 return;
             }
 
-            const labels = prices.map(p => formatDate(p[0]));
-            const values = prices.map(p => p[1]);
-
-            const currentPrice = values[values.length - 1];
-            const prevPrice = values[0];
+            const currentPrice = prices[prices.length - 1][1];
+            const prevPrice = prices[0][1];
             const change = prevPrice !== 0 ? ((currentPrice - prevPrice) / prevPrice * 100) : 0;
             const changeClass = change >= 0 ? 'green' : 'red';
             const changeText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
@@ -559,9 +615,87 @@
                 chart.destroy();
             }
 
+            if (type === 'candle') {
+                // Свечной график
+                const ohlcData = await fetchCandleData(coinId, days);
+                const candles = buildCandles(ohlcData);
+
+                if (candles.length === 0) {
+                    // Если свечных данных нет, показываем линию
+                    drawLineChart(ctx, prices);
+                    return;
+                }
+
+                chart = new Chart(ctx, {
+                    type: 'candlestick',
+                    data: {
+                        datasets: [{
+                            label: 'Свечи',
+                            data: candles,
+                            color: {
+                                up: '#4caf50',
+                                down: '#f44336',
+                                unchanged: '#999'
+                            }
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const item = context.raw;
+                                        return 'O: $' + item.o.toFixed(2) +
+                                            ' H: $' + item.h.toFixed(2) +
+                                            ' L: $' + item.l.toFixed(2) +
+                                            ' C: $' + item.c.toFixed(2);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    color: 'rgba(255,255,255,0.05)'
+                                },
+                                ticks: {
+                                    color: 'rgba(255,255,255,0.4)',
+                                    maxTicksLimit: 8,
+                                    maxRotation: 0
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    color: 'rgba(255,255,255,0.05)'
+                                },
+                                ticks: {
+                                    color: 'rgba(255,255,255,0.4)',
+                                    callback: function(value) {
+                                        return '$' + value.toFixed(0);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                // Линейный график с жёлтой линией
+                drawLineChart(ctx, prices);
+            }
+        }
+
+        function drawLineChart(ctx, prices) {
+            const labels = prices.map(p => formatDate(p[0]));
+            const values = prices.map(p => p[1]);
+
             const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-            gradient.addColorStop(0, 'rgba(247, 147, 26, 0.3)');
-            gradient.addColorStop(1, 'rgba(247, 147, 26, 0.0)');
+            gradient.addColorStop(0, 'rgba(255, 193, 7, 0.3)');
+            gradient.addColorStop(1, 'rgba(255, 193, 7, 0.0)');
 
             chart = new Chart(ctx, {
                 type: 'line',
@@ -570,7 +704,7 @@
                     datasets: [{
                         label: 'Цена USD',
                         data: values,
-                        borderColor: '#f7931a',
+                        borderColor: '#ffc107',
                         backgroundColor: gradient,
                         fill: true,
                         tension: 0.4,
@@ -627,15 +761,18 @@
             document.getElementById('chartPage').style.display = 'flex';
             document.getElementById('chartCoinTitle').textContent = getCoinDisplayName(coinId);
 
-            // Обновляем график
-            updateChart(coinId, currentDays);
+            // По умолчанию линия
+            chartType = 'line';
+            document.getElementById('lineChartBtn').classList.add('active');
+            document.getElementById('candleChartBtn').classList.remove('active');
 
-            // Запускаем обновление каждые 60 секунд
+            updateChart(coinId, currentDays, chartType);
+
             if (updateInterval) {
                 clearInterval(updateInterval);
             }
             updateInterval = setInterval(() => {
-                updateChart(currentCoinId, currentDays);
+                updateChart(currentCoinId, currentDays, chartType);
             }, 60000);
         }
 
@@ -648,13 +785,28 @@
             document.getElementById('appContainer').style.display = 'flex';
         });
 
+        // ===== КНОПКИ ТИПА ГРАФИКА =====
+        document.getElementById('lineChartBtn').addEventListener('click', function() {
+            chartType = 'line';
+            this.classList.add('active');
+            document.getElementById('candleChartBtn').classList.remove('active');
+            updateChart(currentCoinId, currentDays, chartType);
+        });
+
+        document.getElementById('candleChartBtn').addEventListener('click', function() {
+            chartType = 'candle';
+            this.classList.add('active');
+            document.getElementById('lineChartBtn').classList.remove('active');
+            updateChart(currentCoinId, currentDays, chartType);
+        });
+
         // ===== ТАЙМФРЕЙМЫ =====
         document.querySelectorAll('.timeframe-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 currentDays = parseInt(this.dataset.days);
-                updateChart(currentCoinId, currentDays);
+                updateChart(currentCoinId, currentDays, chartType);
             });
         });
 
