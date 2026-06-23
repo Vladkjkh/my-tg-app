@@ -223,7 +223,7 @@
             min-height: 0;
             border-radius: 12px;
             overflow: hidden;
-            background: rgba(0, 0, 0, 0.3);
+            background: #0a0e27;
             margin-top: 50px;
         }
 
@@ -231,6 +231,7 @@
             width: 100%;
             height: 100%;
             border: none;
+            background: #0a0e27;
         }
 
         #btcPage .timeframes {
@@ -404,10 +405,10 @@
         }
 
         function updateChart(coinId, interval) {
-            const symbol = 'BTC';
             const frame = document.getElementById('tradingviewFrame');
+            const symbol = 'BTC';
             frame.src =
-                `https://s.tradingview.com/widgetembed/?hideideas=1&symbol=CRYPTO:${symbol}USD&interval=${interval}&allow_symbol_change=0`;
+                `https://s.tradingview.com/widgetembed/?hideideas=1&symbol=CRYPTO:${symbol}USD&interval=${interval}&allow_symbol_change=0&hide_volume=1&hide_side_toolbar=0&hide_top_toolbar=1&hide_tabs=1&hide_legend=1&theme=dark`;
         }
 
         document.querySelectorAll('.timeframe-btn').forEach(btn => {
