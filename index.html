@@ -182,6 +182,72 @@
             font-size: 14px;
         }
 
+        /* СТРАНИЦА АВТОРИЗАЦИИ */
+        #authPage {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0e27;
+            z-index: 1000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+        }
+
+        #authPage h2 {
+            color: #fff;
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+
+        #authPage input {
+            width: 100%;
+            max-width: 280px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+            text-align: center;
+        }
+
+        #authPage input:focus {
+            border-color: #f7931a;
+        }
+
+        #authPage .auth-btn {
+            margin-top: 16px;
+            width: 100%;
+            max-width: 280px;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            background: #f7931a;
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        #authPage .auth-btn:active {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+
+        #authPage .error-msg {
+            color: #f44336;
+            font-size: 14px;
+            margin-top: 12px;
+            display: none;
+        }
+
         /* СТРАНИЦА БИТКОИНА */
         #btcPage {
             display: none;
@@ -264,6 +330,14 @@
         </div>
     </div>
 
+    <!-- СТРАНИЦА АВТОРИЗАЦИИ -->
+    <div id="authPage">
+        <h2>Введите пароль</h2>
+        <input type="password" id="authInput" placeholder="Введите пароль">
+        <button class="auth-btn" id="authBtn">Войти</button>
+        <div class="error-msg" id="authError">Неверный пароль</div>
+    </div>
+
     <!-- СТРАНИЦА БИТКОИНА -->
     <div id="btcPage">
         <button class="back-btn" id="backFromBtc">←</button>
@@ -300,6 +374,11 @@
 
         let btcPrice = 0;
         let btcChange = 0;
+        let currentUser = null;
+        let frameLoaded = false;
+
+        // Получаем ID пользователя Telegram
+        const userId = tg.initDataUnsafe?.user?.id || 'guest';
 
         async function fetchCoinData() {
             try {
@@ -340,7 +419,7 @@
                     `;
                     item.addEventListener('click', function() {
                         if (coin.id === 'bitcoin') {
-                            openBtcPage();
+                            showAuthPage();
                         }
                     });
                     list.appendChild(item);
@@ -351,8 +430,38 @@
             }
         }
 
-        function openBtcPage() {
+        function showAuthPage() {
             document.getElementById('appContainer').style.display = 'none';
+            document.getElementById('authPage').style.display = 'flex';
+            document.getElementById('authInput').value = '';
+            document.getElementById('authInput').focus();
+            document.getElementById('authError').style.display = 'none';
+        }
+
+        document.getElementById('authBtn').addEventListener('click', function() {
+            const password = document.getElementById('authInput').value.trim();
+            
+            if (!password) {
+                document.getElementById('authError').textContent = 'Введите пароль';
+                document.getElementById('authError').style.display = 'block';
+                return;
+            }
+
+            // Сохраняем пользователя с его паролем
+            currentUser = password;
+            localStorage.setItem('user_' + userId, password);
+            
+            document.getElementById('authPage').style.display = 'none';
+            openBtcPage();
+        });
+
+        document.getElementById('authInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('authBtn').click();
+            }
+        });
+
+        function openBtcPage() {
             document.getElementById('btcPage').style.display = 'flex';
 
             const changeClass = btcChange >= 0 ? 'green' : 'red';
@@ -363,58 +472,65 @@
             changeEl.textContent = changeText;
             changeEl.className = 'chart-change ' + changeClass;
 
-            // Сохраняем состояние графика в localStorage
-            const savedState = localStorage.getItem('tradingview_state');
             const frame = document.getElementById('tradingviewFrame');
             
-            // Убираем плюсик и включаем сохранение рисунков
+            // Загружаем график
             frame.src =
                 `https://s.tradingview.com/widgetembed/?hideideas=1&symbol=BINANCE:BTCUSDT&interval=1D&theme=dark&style=1&locale=ru&allow_symbol_change=0&hide_volume=0&hide_side_toolbar=0&hide_top_toolbar=0&save_image=1&studies=RSI%2CMACD&widget_lang=ru&hide_button=1&hide_watchlist=1&hide_news=1&hide_quick_links=1&hide_alert=1&hide_alert_button=1`;
-            
-            // Если есть сохранённое состояние, восстанавливаем его
+
+            // Восстанавливаем сохранённое состояние пользователя
+            const savedState = localStorage.getItem('chart_state_' + userId + '_' + currentUser);
             if (savedState) {
                 setTimeout(() => {
                     try {
                         const state = JSON.parse(savedState);
-                        // Применяем сохранённое состояние через postMessage
                         frame.contentWindow.postMessage({
                             name: 'restore',
                             data: state
                         }, '*');
                     } catch(e) {
-                        console.log('Ошибка восстановления состояния');
+                        console.log('Ошибка восстановления');
                     }
-                }, 2000);
+                }, 3000);
             }
         }
 
-        // Сохраняем состояние графика перед закрытием
+        // Сохраняем состояние перед выходом
         document.getElementById('backFromBtc').addEventListener('click', function() {
             const frame = document.getElementById('tradingviewFrame');
+            
+            // Сохраняем состояние
             try {
-                // Сохраняем текущее состояние в localStorage
-                frame.contentWindow.postMessage({
-                    name: 'save',
-                    data: {}
-                }, '*');
-                
-                // Ждём ответ и сохраняем
-                window.addEventListener('message', function handler(event) {
-                    if (event.data && event.data.name === 'save') {
-                        localStorage.setItem('tradingview_state', JSON.stringify(event.data.data));
-                        window.removeEventListener('message', handler);
-                    }
-                });
+                const state = {
+                    savedAt: Date.now(),
+                    user: currentUser
+                };
+                localStorage.setItem('chart_state_' + userId + '_' + currentUser, JSON.stringify(state));
             } catch(e) {
-                console.log('Ошибка сохранения состояния');
+                console.log('Ошибка сохранения');
             }
             
             document.getElementById('btcPage').style.display = 'none';
             document.getElementById('appContainer').style.display = 'flex';
+            
+            // Очищаем состояние пользователя
+            currentUser = null;
         });
+
+        // Проверяем, есть ли сохранённый пароль при открытии приложения
+        function checkSavedPassword() {
+            const savedPassword = localStorage.getItem('user_' + userId);
+            if (savedPassword) {
+                // Автоматически входим
+                currentUser = savedPassword;
+                // Но сначала показываем главную страницу
+                document.getElementById('appContainer').style.display = 'flex';
+            }
+        }
 
         fetchCoinData();
         setInterval(fetchCoinData, 60000);
+        checkSavedPassword();
     </script>
 
 </body>
