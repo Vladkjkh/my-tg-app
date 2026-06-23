@@ -183,7 +183,6 @@
             font-size: 14px;
         }
 
-        /* ===== СТРАНИЦА ГРАФИКА ===== */
         #chartPage {
             display: none;
             position: fixed;
@@ -314,7 +313,6 @@
             transform: scale(0.95);
         }
 
-        /* ===== ПРОФИЛЬ ===== */
         #profilePage {
             display: none;
             position: fixed;
@@ -419,7 +417,6 @@
         </div>
     </div>
 
-    <!-- ===== СТРАНИЦА ГРАФИКА ===== -->
     <div id="chartPage">
         <button class="back-btn" id="backFromChart">←</button>
 
@@ -442,7 +439,6 @@
         </div>
     </div>
 
-    <!-- ===== ПРОФИЛЬ ===== -->
     <div id="profilePage">
         <div class="profile-card">
             <div class="profile-row">
@@ -531,7 +527,6 @@
         let currentDays = 7;
         let chartType = 'line';
         let updateInterval = null;
-        let priceCache = null;
 
         function getCoinDisplayName(coinId) {
             const map = {
@@ -565,8 +560,7 @@
 
         async function fetchChartData(coinId, days) {
             try {
-                const url =
-                    `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`;
+                const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`;
                 const data = await fetchWithRetry(url);
                 return data.prices || [];
             } catch (e) {
@@ -576,6 +570,7 @@
         }
 
         function drawCandleChart(ctx, prices) {
+            // Группируем данные по дням
             const dayData = {};
             prices.forEach(p => {
                 const date = new Date(p[0]);
@@ -596,11 +591,16 @@
 
             const labels = candleData.map(d => formatDate(d.date.getTime()));
 
+            // Сначала рисуем пустой барчарт, чтобы получить оси
             chart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
-                    datasets: []
+                    datasets: [{
+                        data: candleData.map(d => (d.high + d.low) / 2),
+                        backgroundColor: 'rgba(0,0,0,0)',
+                        borderColor: 'rgba(0,0,0,0)'
+                    }]
                 },
                 options: {
                     responsive: true,
@@ -640,7 +640,7 @@
                 },
                 plugins: [{
                     id: 'candlesticks',
-                    beforeDraw: function(chart) {
+                    afterDraw: function(chart) {
                         const ctx2 = chart.ctx;
                         const xAxis = chart.scales.x;
                         const yAxis = chart.scales.y;
@@ -648,7 +648,7 @@
 
                         if (data.length === 0) return;
 
-                        const barWidth = Math.max(1, (xAxis.width / data.length) * 0.95);
+                        const barWidth = Math.max(1, (xAxis.width / data.length) * 0.92);
 
                         data.forEach((d, i) => {
                             const x = xAxis.getPixelForValue(i);
@@ -659,7 +659,7 @@
                             const isGreen = d.close >= d.open;
                             const color = isGreen ? '#4caf50' : '#f44336';
 
-                            // Вертикальная линия high-low
+                            // Вертикальная линия (high-low)
                             ctx2.beginPath();
                             ctx2.moveTo(x, highY);
                             ctx2.lineTo(x, lowY);
@@ -667,13 +667,13 @@
                             ctx2.lineWidth = 1.5;
                             ctx2.stroke();
 
-                            // Тело свечи
+                            // Тело свечи (open-close)
                             ctx2.fillStyle = color;
                             const rectHeight = Math.abs(closeY - openY) || 1;
                             const rectY = Math.min(openY, closeY);
                             ctx2.fillRect(x - barWidth / 2, rectY, barWidth, rectHeight);
 
-                            // Рамка
+                            // Тонкая рамка
                             ctx2.strokeStyle = color;
                             ctx2.lineWidth = 0.5;
                             ctx2.strokeRect(x - barWidth / 2, rectY, barWidth, rectHeight);
@@ -835,14 +835,12 @@
 
         async function fetchCoinData() {
             try {
-                // Если есть кеш, показываем его сразу
                 if (coinCache) {
                     renderCoins(coinCache);
                 }
 
                 const ids = coins.map(c => c.id).join(',');
-                const url =
-                    `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
+                const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
                 const data = await fetchWithRetry(url);
                 coinCache = data;
                 renderCoins(data);
@@ -851,7 +849,6 @@
                 console.log('Ошибка загрузки данных монет:', e);
                 if (!coinCache) {
                     document.getElementById('coinsList').innerHTML = '<div class="loading">Ошибка загрузки данных. Повторная попытка...</div>';
-                    // Повторяем через 3 секунды
                     setTimeout(fetchCoinData, 3000);
                 }
             }
@@ -890,7 +887,6 @@
             });
         }
 
-        // Загружаем данные с повторными попытками
         fetchCoinData();
         setInterval(fetchCoinData, 60000);
     </script>
