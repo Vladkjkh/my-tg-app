@@ -655,7 +655,6 @@
             gradient.addColorStop(0.5, '#ffc107');
             gradient.addColorStop(1, '#4caf50');
 
-            // Серая подложка
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius, endAngle, startAngle);
             ctx.strokeStyle = 'rgba(255,255,255,0.1)';
@@ -663,7 +662,6 @@
             ctx.lineCap = 'round';
             ctx.stroke();
 
-            // Цветная дуга
             const percent = Math.min(Math.max(value, 0), 100) / 100;
             const currentAngle = endAngle + totalAngle * (1 - percent);
 
@@ -674,7 +672,6 @@
             ctx.lineCap = 'round';
             ctx.stroke();
 
-            // Точка на конце
             const pointAngle = currentAngle;
             const pointX = centerX + radius * Math.cos(pointAngle);
             const pointY = centerY + radius * Math.sin(pointAngle);
@@ -689,7 +686,6 @@
             ctx.fillStyle = '#ffc107';
             ctx.fill();
 
-            // Деления
             const steps = 10;
             for (let i = 0; i <= steps; i++) {
                 const p = i / steps;
@@ -1031,4 +1027,9 @@
                 ctx2.lineTo(xPos, chartArea.bottom);
                 ctx2.strokeStyle = 'rgba(255, 255, 255, 0.2)';
                 ctx2.lineWidth = 1;
-                ctx2.setLineDash([4,
+                ctx2.setLineDash([4, 4]);
+                ctx2.stroke();
+                ctx2.setLineDash([]);
+
+                ctx2.beginPath();
+                ctx2.moveTo(chartArea
