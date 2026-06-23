@@ -6,7 +6,6 @@
     <title>Приложение</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial"></script>
     <style>
         * {
             margin: 0;
@@ -217,7 +216,6 @@
             opacity: 0.7;
         }
 
-        /* КНОПКИ ТИПА ГРАФИКА СПРАВА СВЕРХУ */
         .chart-type-buttons {
             position: absolute;
             top: 16px;
@@ -549,11 +547,6 @@
             return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
         }
 
-        function formatDateFull(timestamp) {
-            const date = new Date(timestamp);
-            return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-        }
-
         async function fetchChartData(coinId, days) {
             try {
                 const url =
@@ -564,128 +557,6 @@
             } catch (e) {
                 console.log('Ошибка загрузки данных графика:', e);
                 return [];
-            }
-        }
-
-        async function fetchCandleData(coinId, days) {
-            try {
-                // Для свечей используем те же данные, но группируем по дням
-                const url =
-                    `https://api.coingecko.com/api/v3/coins/${coinId}/ohlc?vs_currency=usd&days=${days}`;
-                const response = await fetch(url);
-                const data = await response.json();
-                return data || [];
-            } catch (e) {
-                console.log('Ошибка загрузки свечных данных:', e);
-                return [];
-            }
-        }
-
-        function buildCandles(ohlcData) {
-            return ohlcData.map(item => ({
-                x: new Date(item[0]),
-                o: item[1],
-                h: item[2],
-                l: item[3],
-                c: item[4]
-            }));
-        }
-
-        async function updateChart(coinId, days, type) {
-            const prices = await fetchChartData(coinId, days);
-
-            if (prices.length === 0) {
-                return;
-            }
-
-            const currentPrice = prices[prices.length - 1][1];
-            const prevPrice = prices[0][1];
-            const change = prevPrice !== 0 ? ((currentPrice - prevPrice) / prevPrice * 100) : 0;
-            const changeClass = change >= 0 ? 'green' : 'red';
-            const changeText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
-
-            document.getElementById('chartPriceDisplay').textContent = '$' + currentPrice.toFixed(2);
-            const changeEl = document.getElementById('chartChangeDisplay');
-            changeEl.textContent = changeText;
-            changeEl.className = 'chart-change-display ' + changeClass;
-
-            const ctx = document.getElementById('priceChart').getContext('2d');
-
-            if (chart) {
-                chart.destroy();
-            }
-
-            if (type === 'candle') {
-                // Свечной график
-                const ohlcData = await fetchCandleData(coinId, days);
-                const candles = buildCandles(ohlcData);
-
-                if (candles.length === 0) {
-                    // Если свечных данных нет, показываем линию
-                    drawLineChart(ctx, prices);
-                    return;
-                }
-
-                chart = new Chart(ctx, {
-                    type: 'candlestick',
-                    data: {
-                        datasets: [{
-                            label: 'Свечи',
-                            data: candles,
-                            color: {
-                                up: '#4caf50',
-                                down: '#f44336',
-                                unchanged: '#999'
-                            }
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: false
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const item = context.raw;
-                                        return 'O: $' + item.o.toFixed(2) +
-                                            ' H: $' + item.h.toFixed(2) +
-                                            ' L: $' + item.l.toFixed(2) +
-                                            ' C: $' + item.c.toFixed(2);
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                grid: {
-                                    color: 'rgba(255,255,255,0.05)'
-                                },
-                                ticks: {
-                                    color: 'rgba(255,255,255,0.4)',
-                                    maxTicksLimit: 8,
-                                    maxRotation: 0
-                                }
-                            },
-                            y: {
-                                grid: {
-                                    color: 'rgba(255,255,255,0.05)'
-                                },
-                                ticks: {
-                                    color: 'rgba(255,255,255,0.4)',
-                                    callback: function(value) {
-                                        return '$' + value.toFixed(0);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            } else {
-                // Линейный график с жёлтой линией
-                drawLineChart(ctx, prices);
             }
         }
 
@@ -717,9 +588,7 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            display: false
-                        },
+                        legend: { display: false },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
@@ -730,9 +599,86 @@
                     },
                     scales: {
                         x: {
-                            grid: {
-                                color: 'rgba(255,255,255,0.05)'
-                            },
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: 'rgba(255,255,255,0.4)', maxTicksLimit: 10, maxRotation: 0 }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: {
+                                color: 'rgba(255,255,255,0.4)',
+                                callback: function(value) { return '$' + value.toFixed(0); }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function drawCandleChart(ctx, prices) {
+            // Группируем данные по дням для свечей
+            const dayData = {};
+            prices.forEach(p => {
+                const date = new Date(p[0]);
+                const key = date.toDateString();
+                if (!dayData[key]) {
+                    dayData[key] = { high: p[1], low: p[1], open: p[1], close: p[1], date: date };
+                } else {
+                    if (p[1] > dayData[key].high) dayData[key].high = p[1];
+                    if (p[1] < dayData[key].low) dayData[key].low = p[1];
+                    dayData[key].close = p[1];
+                }
+            });
+
+            const days = Object.keys(dayData).sort();
+            const candleData = days.map(key => dayData[key]);
+
+            const labels = candleData.map(d => formatDate(d.date.getTime()));
+            const opens = candleData.map(d => d.open);
+            const highs = candleData.map(d => d.high);
+            const lows = candleData.map(d => d.low);
+            const closes = candleData.map(d => d.close);
+
+            // Строим свечи через scatter с кастомными элементами
+            chart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Свечи',
+                        data: candleData.map((d, i) => ({
+                            x: i,
+                            y: (d.high + d.low) / 2,
+                            open: d.open,
+                            high: d.high,
+                            low: d.low,
+                            close: d.close
+                        })),
+                        backgroundColor: candleData.map(d => d.close >= d.open ? '#4caf50' : '#f44336'),
+                        borderColor: candleData.map(d => d.close >= d.open ? '#4caf50' : '#f44336'),
+                        pointRadius: 0,
+                        showLine: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const d = context.raw;
+                                    return 'O: $' + d.open.toFixed(2) +
+                                        ' H: $' + d.high.toFixed(2) +
+                                        ' L: $' + d.low.toFixed(2) +
+                                        ' C: $' + d.close.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
                             ticks: {
                                 color: 'rgba(255,255,255,0.4)',
                                 maxTicksLimit: 10,
@@ -740,19 +686,79 @@
                             }
                         },
                         y: {
-                            grid: {
-                                color: 'rgba(255,255,255,0.05)'
-                            },
+                            grid: { color: 'rgba(255,255,255,0.05)' },
                             ticks: {
                                 color: 'rgba(255,255,255,0.4)',
-                                callback: function(value) {
-                                    return '$' + value.toFixed(0);
-                                }
+                                callback: function(value) { return '$' + value.toFixed(0); }
                             }
                         }
                     }
-                }
+                },
+                plugins: [{
+                    id: 'candlesticks',
+                    beforeDraw: function(chart) {
+                        const ctx2 = chart.ctx;
+                        const xAxis = chart.scales.x;
+                        const yAxis = chart.scales.y;
+                        const data = chart.data.datasets[0].data;
+
+                        data.forEach((d, i) => {
+                            const x = xAxis.getPixelForValue(i);
+                            const openY = yAxis.getPixelForValue(d.open);
+                            const closeY = yAxis.getPixelForValue(d.close);
+                            const highY = yAxis.getPixelForValue(d.high);
+                            const lowY = yAxis.getPixelForValue(d.low);
+                            const isGreen = d.close >= d.open;
+                            const color = isGreen ? '#4caf50' : '#f44336';
+                            const barWidth = Math.max(2, (xAxis.width / data.length) * 0.6);
+
+                            // Вертикальная линия (high-low)
+                            ctx2.beginPath();
+                            ctx2.moveTo(x, highY);
+                            ctx2.lineTo(x, lowY);
+                            ctx2.strokeStyle = color;
+                            ctx2.lineWidth = 1;
+                            ctx2.stroke();
+
+                            // Тело свечи (open-close)
+                            ctx2.fillStyle = color;
+                            ctx2.fillRect(x - barWidth / 2, Math.min(openY, closeY), barWidth, Math.abs(closeY - openY) || 1);
+                        });
+                    }
+                }]
             });
+        }
+
+        async function updateChart(coinId, days, type) {
+            const prices = await fetchChartData(coinId, days);
+
+            if (prices.length === 0) {
+                return;
+            }
+
+            const currentPrice = prices[prices.length - 1][1];
+            const prevPrice = prices[0][1];
+            const change = prevPrice !== 0 ? ((currentPrice - prevPrice) / prevPrice * 100) : 0;
+            const changeClass = change >= 0 ? 'green' : 'red';
+            const changeText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+
+            document.getElementById('chartPriceDisplay').textContent = '$' + currentPrice.toFixed(2);
+            const changeEl = document.getElementById('chartChangeDisplay');
+            changeEl.textContent = changeText;
+            changeEl.className = 'chart-change-display ' + changeClass;
+
+            const ctx = document.getElementById('priceChart').getContext('2d');
+
+            if (chart) {
+                chart.destroy();
+                chart = null;
+            }
+
+            if (type === 'candle') {
+                drawCandleChart(ctx, prices);
+            } else {
+                drawLineChart(ctx, prices);
+            }
         }
 
         function openChartPage(coinId) {
@@ -761,7 +767,6 @@
             document.getElementById('chartPage').style.display = 'flex';
             document.getElementById('chartCoinTitle').textContent = getCoinDisplayName(coinId);
 
-            // По умолчанию линия
             chartType = 'line';
             document.getElementById('lineChartBtn').classList.add('active');
             document.getElementById('candleChartBtn').classList.remove('active');
