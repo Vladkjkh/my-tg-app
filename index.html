@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Приложение</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-          {
+        * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -175,16 +176,6 @@
         .coin-change-24h.green { color: #4caf50; }
         .coin-change-24h.red { color: #f44336; }
 
-        .coin-change-7d {
-            font-size: 11px;
-            font-weight: 600;
-            min-width: 45px;
-            text-align: right;
-            flex-shrink: 0;
-        }
-        .coin-change-7d.green { color: #4caf50; }
-        .coin-change-7d.red { color: #f44336; }
-
         .loading {
             color: rgba(255, 255, 255, 0.5);
             text-align: center;
@@ -192,7 +183,107 @@
             font-size: 14px;
         }
 
-        /* ===== СТРАНИЦА ПРОФИЛЯ ===== */
+        /* ===== СТРАНИЦА ГРАФИКА ===== */
+        #chartPage {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0e27;
+            z-index: 999;
+            flex-direction: column;
+            padding: 12px;
+        }
+
+        #chartPage .back-btn {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            font-size: 20px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        #chartPage .back-btn:active {
+            transform: scale(0.95);
+            opacity: 0.7;
+        }
+
+        #chartPage .chart-header {
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 50px;
+            margin-bottom: 4px;
+        }
+
+        #chartPage .chart-price-display {
+            color: #fff;
+            font-size: 28px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        #chartPage .chart-change-display {
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        #chartPage .chart-change-display.green { color: #4caf50; }
+        #chartPage .chart-change-display.red { color: #f44336; }
+
+        #chartPage .chart-container {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            position: relative;
+        }
+
+        #chartPage .chart-container canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        #chartPage .timeframes {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            padding: 8px 0 12px 0;
+            flex-shrink: 0;
+        }
+
+        #chartPage .timeframe-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        #chartPage .timeframe-btn.active {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        #chartPage .timeframe-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* ===== ПРОФИЛЬ ===== */
         #profilePage {
             display: none;
             position: fixed;
@@ -297,6 +388,24 @@
         </div>
     </div>
 
+    <!-- ===== СТРАНИЦА ГРАФИКА ===== -->
+    <div id="chartPage">
+        <button class="back-btn" id="backFromChart">←</button>
+        <div class="chart-header" id="chartCoinTitle">Bitcoin</div>
+        <div class="chart-price-display" id="chartPriceDisplay">$0.00</div>
+        <div class="chart-change-display" id="chartChangeDisplay">+0.00%</div>
+        <div class="chart-container">
+            <canvas id="priceChart"></canvas>
+        </div>
+        <div class="timeframes">
+            <button class="timeframe-btn" data-days="1">1д</button>
+            <button class="timeframe-btn active" data-days="7">7д</button>
+            <button class="timeframe-btn" data-days="30">30д</button>
+            <button class="timeframe-btn" data-days="90">90д</button>
+        </div>
+    </div>
+
+    <!-- ===== ПРОФИЛЬ ===== -->
     <div id="profilePage">
         <div class="profile-card">
             <div class="profile-row">
@@ -379,6 +488,176 @@
             }
         }
 
+        // ===== ГРАФИК =====
+        let chart = null;
+        let currentCoinId = 'bitcoin';
+        let currentDays = 7;
+        let updateInterval = null;
+
+        function getCoinDisplayName(coinId) {
+            const map = {
+                'bitcoin': 'Bitcoin',
+                'ethereum': 'Ethereum',
+                'ripple': 'XRP',
+                'hyperliquid': 'Hype'
+            };
+            return map[coinId] || coinId;
+        }
+
+        function getCoinSymbol(coinId) {
+            const map = {
+                'bitcoin': 'BTC',
+                'ethereum': 'ETH',
+                'ripple': 'XRP',
+                'hyperliquid': 'HYPE'
+            };
+            return map[coinId] || coinId.toUpperCase();
+        }
+
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+        }
+
+        async function fetchChartData(coinId, days) {
+            try {
+                const url =
+                    `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                return data.prices || [];
+            } catch (e) {
+                console.log('Ошибка загрузки данных графика:', e);
+                return [];
+            }
+        }
+
+        async function updateChart(coinId, days) {
+            const prices = await fetchChartData(coinId, days);
+            
+            if (prices.length === 0) {
+                return;
+            }
+
+            const labels = prices.map(p => formatDate(p[0]));
+            const values = prices.map(p => p[1]);
+
+            const currentPrice = values[values.length - 1];
+            const prevPrice = values[0];
+            const change = prevPrice !== 0 ? ((currentPrice - prevPrice) / prevPrice * 100) : 0;
+            const changeClass = change >= 0 ? 'green' : 'red';
+            const changeText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+
+            document.getElementById('chartPriceDisplay').textContent = '$' + currentPrice.toFixed(2);
+            const changeEl = document.getElementById('chartChangeDisplay');
+            changeEl.textContent = changeText;
+            changeEl.className = 'chart-change-display ' + changeClass;
+
+            const ctx = document.getElementById('priceChart').getContext('2d');
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(247, 147, 26, 0.3)');
+            gradient.addColorStop(1, 'rgba(247, 147, 26, 0.0)');
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Цена USD',
+                        data: values,
+                        borderColor: '#f7931a',
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return '$' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255,255,255,0.05)'
+                            },
+                            ticks: {
+                                color: 'rgba(255,255,255,0.4)',
+                                maxTicksLimit: 10,
+                                maxRotation: 0
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255,255,255,0.05)'
+                            },
+                            ticks: {
+                                color: 'rgba(255,255,255,0.4)',
+                                callback: function(value) {
+                                    return '$' + value.toFixed(0);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function openChartPage(coinId) {
+            currentCoinId = coinId;
+            document.getElementById('appContainer').style.display = 'none';
+            document.getElementById('chartPage').style.display = 'flex';
+            document.getElementById('chartCoinTitle').textContent = getCoinDisplayName(coinId);
+
+            // Обновляем график
+            updateChart(coinId, currentDays);
+
+            // Запускаем обновление каждые 60 секунд
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+            updateInterval = setInterval(() => {
+                updateChart(currentCoinId, currentDays);
+            }, 60000);
+        }
+
+        document.getElementById('backFromChart').addEventListener('click', function() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+                updateInterval = null;
+            }
+            document.getElementById('chartPage').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'flex';
+        });
+
+        // ===== ТАЙМФРЕЙМЫ =====
+        document.querySelectorAll('.timeframe-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentDays = parseInt(this.dataset.days);
+                updateChart(currentCoinId, currentDays);
+            });
+        });
+
         // ===== МОНЕТЫ =====
         const coins = [
             { id: 'bitcoin', name: 'Bitcoin', symbol: 'btc', icon: '₿' },
@@ -391,7 +670,7 @@
             try {
                 const ids = coins.map(c => c.id).join(',');
                 const url =
-                    `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_7d_change=true`;
+                    `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
                 const response = await fetch(url);
                 const data = await response.json();
 
@@ -404,13 +683,9 @@
 
                     const price = info.usd;
                     const change24h = info.usd_24h_change || 0;
-                    const change7d = info.usd_7d_change || 0;
 
                     const change24hClass = change24h >= 0 ? 'green' : 'red';
                     const change24hText = (change24h >= 0 ? '+' : '') + change24h.toFixed(2) + '%';
-
-                    const change7dClass = change7d >= 0 ? 'green' : 'red';
-                    const change7dText = (change7d >= 0 ? '+' : '') + change7d.toFixed(2) + '%';
 
                     const item = document.createElement('div');
                     item.className = 'coin-item';
@@ -423,13 +698,9 @@
                         </div>
                         <div class="coin-price">$${price.toFixed(2)}</div>
                         <div class="coin-change-24h ${change24hClass}">${change24hText}</div>
-                        <div class="coin-change-7d ${change7dClass}">${change7dText}</div>
                     `;
                     item.addEventListener('click', function() {
-                        if (coin.id === 'bitcoin') {
-                            tg.sendData('bitcoin');
-                            tg.close();
-                        }
+                        openChartPage(coin.id);
                     });
                     list.appendChild(item);
                 });
