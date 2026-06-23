@@ -183,6 +183,7 @@
             font-size: 14px;
         }
 
+        /* ===== СТРАНИЦА ГРАФИКА ===== */
         #chartPage {
             display: none;
             position: fixed;
@@ -213,37 +214,6 @@
         #chartPage .back-btn:active {
             transform: scale(0.95);
             opacity: 0.7;
-        }
-
-        .chart-type-buttons {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            z-index: 10;
-            display: flex;
-            gap: 6px;
-        }
-
-        .chart-type-btn {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 8px;
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 11px;
-            font-weight: 600;
-            padding: 6px 10px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .chart-type-btn.active {
-            background: rgba(255, 255, 255, 0.15);
-            color: #fff;
-            border-color: rgba(255, 255, 255, 0.3);
-        }
-
-        .chart-type-btn:active {
-            transform: scale(0.95);
         }
 
         #chartPage .chart-header {
@@ -313,6 +283,7 @@
             transform: scale(0.95);
         }
 
+        /* ===== ПРОФИЛЬ ===== */
         #profilePage {
             display: none;
             position: fixed;
@@ -417,13 +388,9 @@
         </div>
     </div>
 
+    <!-- ===== СТРАНИЦА ГРАФИКА ===== -->
     <div id="chartPage">
         <button class="back-btn" id="backFromChart">←</button>
-
-        <div class="chart-type-buttons">
-            <button class="chart-type-btn active" id="lineChartBtn">Линия</button>
-            <button class="chart-type-btn" id="candleChartBtn">Свечи</button>
-        </div>
 
         <div class="chart-header" id="chartCoinTitle">Bitcoin</div>
         <div class="chart-price-display" id="chartPriceDisplay">$0.00</div>
@@ -439,6 +406,7 @@
         </div>
     </div>
 
+    <!-- ===== ПРОФИЛЬ ===== -->
     <div id="profilePage">
         <div class="profile-card">
             <div class="profile-row">
@@ -525,7 +493,6 @@
         let chart = null;
         let currentCoinId = 'bitcoin';
         let currentDays = 7;
-        let chartType = 'line';
         let updateInterval = null;
 
         function getCoinDisplayName(coinId) {
@@ -560,127 +527,14 @@
 
         async function fetchChartData(coinId, days) {
             try {
-                const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`;
+                const url =
+                    `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`;
                 const data = await fetchWithRetry(url);
                 return data.prices || [];
             } catch (e) {
                 console.log('Ошибка загрузки данных графика:', e);
                 return [];
             }
-        }
-
-        function drawCandleChart(ctx, prices) {
-            // Группируем данные по дням
-            const dayData = {};
-            prices.forEach(p => {
-                const date = new Date(p[0]);
-                const key = date.toDateString();
-                if (!dayData[key]) {
-                    dayData[key] = { high: p[1], low: p[1], open: p[1], close: p[1], date: date };
-                } else {
-                    if (p[1] > dayData[key].high) dayData[key].high = p[1];
-                    if (p[1] < dayData[key].low) dayData[key].low = p[1];
-                    dayData[key].close = p[1];
-                }
-            });
-
-            const days = Object.keys(dayData).sort();
-            const candleData = days.map(key => dayData[key]);
-
-            if (candleData.length === 0) return;
-
-            const labels = candleData.map(d => formatDate(d.date.getTime()));
-
-            // Сначала рисуем пустой барчарт, чтобы получить оси
-            chart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: candleData.map(d => (d.high + d.low) / 2),
-                        backgroundColor: 'rgba(0,0,0,0)',
-                        borderColor: 'rgba(0,0,0,0)'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const d = candleData[context.dataIndex];
-                                    if (!d) return '';
-                                    return 'O: $' + d.open.toFixed(2) +
-                                        ' H: $' + d.high.toFixed(2) +
-                                        ' L: $' + d.low.toFixed(2) +
-                                        ' C: $' + d.close.toFixed(2);
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { color: 'rgba(255,255,255,0.05)' },
-                            ticks: {
-                                color: 'rgba(255,255,255,0.4)',
-                                maxTicksLimit: 10,
-                                maxRotation: 0
-                            }
-                        },
-                        y: {
-                            grid: { color: 'rgba(255,255,255,0.05)' },
-                            ticks: {
-                                color: 'rgba(255,255,255,0.4)',
-                                callback: function(value) { return '$' + value.toFixed(0); }
-                            }
-                        }
-                    }
-                },
-                plugins: [{
-                    id: 'candlesticks',
-                    afterDraw: function(chart) {
-                        const ctx2 = chart.ctx;
-                        const xAxis = chart.scales.x;
-                        const yAxis = chart.scales.y;
-                        const data = candleData;
-
-                        if (data.length === 0) return;
-
-                        const barWidth = Math.max(1, (xAxis.width / data.length) * 0.92);
-
-                        data.forEach((d, i) => {
-                            const x = xAxis.getPixelForValue(i);
-                            const openY = yAxis.getPixelForValue(d.open);
-                            const closeY = yAxis.getPixelForValue(d.close);
-                            const highY = yAxis.getPixelForValue(d.high);
-                            const lowY = yAxis.getPixelForValue(d.low);
-                            const isGreen = d.close >= d.open;
-                            const color = isGreen ? '#4caf50' : '#f44336';
-
-                            // Вертикальная линия (high-low)
-                            ctx2.beginPath();
-                            ctx2.moveTo(x, highY);
-                            ctx2.lineTo(x, lowY);
-                            ctx2.strokeStyle = color;
-                            ctx2.lineWidth = 1.5;
-                            ctx2.stroke();
-
-                            // Тело свечи (open-close)
-                            ctx2.fillStyle = color;
-                            const rectHeight = Math.abs(closeY - openY) || 1;
-                            const rectY = Math.min(openY, closeY);
-                            ctx2.fillRect(x - barWidth / 2, rectY, barWidth, rectHeight);
-
-                            // Тонкая рамка
-                            ctx2.strokeStyle = color;
-                            ctx2.lineWidth = 0.5;
-                            ctx2.strokeRect(x - barWidth / 2, rectY, barWidth, rectHeight);
-                        });
-                    }
-                }]
-            });
         }
 
         function drawLineChart(ctx, prices) {
@@ -737,7 +591,7 @@
             });
         }
 
-        async function updateChart(coinId, days, type) {
+        async function updateChart(coinId, days) {
             const prices = await fetchChartData(coinId, days);
 
             if (prices.length === 0) {
@@ -762,11 +616,7 @@
                 chart = null;
             }
 
-            if (type === 'candle') {
-                drawCandleChart(ctx, prices);
-            } else {
-                drawLineChart(ctx, prices);
-            }
+            drawLineChart(ctx, prices);
         }
 
         function openChartPage(coinId) {
@@ -775,17 +625,13 @@
             document.getElementById('chartPage').style.display = 'flex';
             document.getElementById('chartCoinTitle').textContent = getCoinDisplayName(coinId);
 
-            chartType = 'line';
-            document.getElementById('lineChartBtn').classList.add('active');
-            document.getElementById('candleChartBtn').classList.remove('active');
-
-            updateChart(coinId, currentDays, chartType);
+            updateChart(coinId, currentDays);
 
             if (updateInterval) {
                 clearInterval(updateInterval);
             }
             updateInterval = setInterval(() => {
-                updateChart(currentCoinId, currentDays, chartType);
+                updateChart(currentCoinId, currentDays);
             }, 60000);
         }
 
@@ -798,28 +644,13 @@
             document.getElementById('appContainer').style.display = 'flex';
         });
 
-        // ===== КНОПКИ ТИПА ГРАФИКА =====
-        document.getElementById('lineChartBtn').addEventListener('click', function() {
-            chartType = 'line';
-            this.classList.add('active');
-            document.getElementById('candleChartBtn').classList.remove('active');
-            updateChart(currentCoinId, currentDays, chartType);
-        });
-
-        document.getElementById('candleChartBtn').addEventListener('click', function() {
-            chartType = 'candle';
-            this.classList.add('active');
-            document.getElementById('lineChartBtn').classList.remove('active');
-            updateChart(currentCoinId, currentDays, chartType);
-        });
-
         // ===== ТАЙМФРЕЙМЫ =====
         document.querySelectorAll('.timeframe-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 currentDays = parseInt(this.dataset.days);
-                updateChart(currentCoinId, currentDays, chartType);
+                updateChart(currentCoinId, currentDays);
             });
         });
 
@@ -840,7 +671,8 @@
                 }
 
                 const ids = coins.map(c => c.id).join(',');
-                const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
+                const url =
+                    `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
                 const data = await fetchWithRetry(url);
                 coinCache = data;
                 renderCoins(data);
@@ -848,7 +680,8 @@
             } catch (e) {
                 console.log('Ошибка загрузки данных монет:', e);
                 if (!coinCache) {
-                    document.getElementById('coinsList').innerHTML = '<div class="loading">Ошибка загрузки данных. Повторная попытка...</div>';
+                    document.getElementById('coinsList').innerHTML =
+                        '<div class="loading">Ошибка загрузки данных. Повторная попытка...</div>';
                     setTimeout(fetchCoinData, 3000);
                 }
             }
@@ -871,15 +704,15 @@
                 const item = document.createElement('div');
                 item.className = 'coin-item';
                 item.innerHTML = `
-                    <span class="coin-number">${index + 1}</span>
-                    <div class="coin-icon ${coin.symbol}">${coin.icon}</div>
-                    <div class="coin-info">
-                        <div class="coin-name">${coin.name}</div>
-                        <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
-                    </div>
-                    <div class="coin-price">$${price.toFixed(2)}</div>
-                    <div class="coin-change-24h ${change24hClass}">${change24hText}</div>
-                `;
+                        <span class="coin-number">${index + 1}</span>
+                        <div class="coin-icon ${coin.symbol}">${coin.icon}</div>
+                        <div class="coin-info">
+                            <div class="coin-name">${coin.name}</div>
+                            <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
+                        </div>
+                        <div class="coin-price">$${price.toFixed(2)}</div>
+                        <div class="coin-change-24h ${change24hClass}">${change24hText}</div>
+                    `;
                 item.addEventListener('click', function() {
                     openChartPage(coin.id);
                 });
