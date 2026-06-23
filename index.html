@@ -183,7 +183,7 @@
             font-size: 14px;
         }
 
-        /* СТРАНИЦА БИТКОИНА - ПОЛНЫЙ ЭКРАН */
+        /* СТРАНИЦА БИТКОИНА */
         #btcPage {
             display: none;
             position: fixed;
@@ -194,20 +194,19 @@
             background: #0a0e27;
             z-index: 999;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+            padding: 12px;
         }
 
         #btcPage .back-btn {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 16px;
+            left: 16px;
+            z-index: 10;
             background: rgba(255, 255, 255, 0.1);
             border: none;
             color: #fff;
-            font-size: 24px;
-            padding: 8px 16px;
+            font-size: 20px;
+            padding: 6px 14px;
             border-radius: 20px;
             cursor: pointer;
             backdrop-filter: blur(4px);
@@ -218,19 +217,66 @@
             opacity: 0.7;
         }
 
-        #btcPage .page-title {
-            color: #fff;
-            font-size: 32px;
-            font-weight: bold;
-            text-align: center;
+        #btcPage .chart-container {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.3);
+            margin-top: 50px;
         }
 
-        #btcPage .page-subtitle {
-            color: rgba(255, 255, 255, 0.4);
-            text-align: center;
-            margin-top: 12px;
-            font-size: 16px;
+        #btcPage .chart-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
         }
+
+        #btcPage .timeframes {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 10px;
+            flex-shrink: 0;
+        }
+
+        #btcPage .timeframe-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 8px 20px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        #btcPage .timeframe-btn.active {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        #btcPage .timeframe-btn:active {
+            transform: scale(0.95);
+        }
+
+        #btcPage .chart-price {
+            color: #fff;
+            font-size: 28px;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 50px;
+        }
+        #btcPage .chart-change {
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        #btcPage .chart-change.green { color: #4caf50; }
+        #btcPage .chart-change.red { color: #f44336; }
     </style>
 </head>
 <body>
@@ -241,7 +287,6 @@
             <button class="top-btn" id="chartsBtn">Графики</button>
         </div>
 
-        <!-- ГЛАВНАЯ СТРАНИЦА -->
         <div id="mainPage">
             <div class="coins-list" id="coinsList">
                 <div class="loading">Загрузка данных...</div>
@@ -249,11 +294,22 @@
         </div>
     </div>
 
-    <!-- СТРАНИЦА БИТКОИНА - ПОЛНЫЙ ЭКРАН -->
+    <!-- СТРАНИЦА БИТКОИНА -->
     <div id="btcPage">
-        <button class="back-btn" id="backFromBtc">← Назад</button>
-        <div class="page-title">Bitcoin</div>
-        <div class="page-subtitle">Здесь будет график</div>
+        <button class="back-btn" id="backFromBtc">←</button>
+
+        <div class="chart-price" id="chartPrice">$0.00</div>
+        <div class="chart-change" id="chartChange">+0.00%</div>
+
+        <div class="chart-container" id="chartContainer">
+            <iframe id="tradingviewFrame" src=""></iframe>
+        </div>
+
+        <div class="timeframes">
+            <button class="timeframe-btn active" data-interval="1D">1день</button>
+            <button class="timeframe-btn" data-interval="4h">4часа</button>
+            <button class="timeframe-btn" data-interval="1h">1час</button>
+        </div>
     </div>
 
     <script>
@@ -278,6 +334,10 @@
             { id: 'hyperliquid', name: 'Hype', symbol: 'hype', icon: '◆' }
         ];
 
+        let currentInterval = '1D';
+        let btcPrice = 0;
+        let btcChange = 0;
+
         async function fetchCoinData() {
             try {
                 const ids = coins.map(c => c.id).join(',');
@@ -297,6 +357,11 @@
                     const change = info.usd_24h_change;
                     const changeClass = change >= 0 ? 'green' : 'red';
                     const changeText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+
+                    if (coin.id === 'bitcoin') {
+                        btcPrice = price;
+                        btcChange = change;
+                    }
 
                     const item = document.createElement('div');
                     item.className = 'coin-item';
@@ -326,7 +391,33 @@
         function openBtcPage() {
             document.getElementById('appContainer').style.display = 'none';
             document.getElementById('btcPage').style.display = 'flex';
+
+            const changeClass = btcChange >= 0 ? 'green' : 'red';
+            const changeText = (btcChange >= 0 ? '+' : '') + btcChange.toFixed(2) + '%';
+
+            document.getElementById('chartPrice').textContent = '$' + btcPrice.toFixed(2);
+            const changeEl = document.getElementById('chartChange');
+            changeEl.textContent = changeText;
+            changeEl.className = 'chart-change ' + changeClass;
+
+            updateChart('bitcoin', currentInterval);
         }
+
+        function updateChart(coinId, interval) {
+            const symbol = 'BTC';
+            const frame = document.getElementById('tradingviewFrame');
+            frame.src =
+                `https://s.tradingview.com/widgetembed/?hideideas=1&symbol=CRYPTO:${symbol}USD&interval=${interval}&allow_symbol_change=0`;
+        }
+
+        document.querySelectorAll('.timeframe-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentInterval = this.dataset.interval;
+                updateChart('bitcoin', currentInterval);
+            });
+        });
 
         document.getElementById('backFromBtc').addEventListener('click', function() {
             document.getElementById('btcPage').style.display = 'none';
