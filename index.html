@@ -522,7 +522,7 @@
             const map = {
                 'bitcoin': 'Bitcoin',
                 'ethereum': 'Ethereum',
-                'bnb': 'BNB',
+                'binancecoin': 'BNB',
                 'ripple': 'XRP',
                 'solana': 'Solana',
                 'tron': 'TRX',
@@ -841,7 +841,7 @@
         const coins = [
             { id: 'bitcoin', name: 'Bitcoin', symbol: 'btc', icon: '₿' },
             { id: 'ethereum', name: 'Ethereum', symbol: 'eth', icon: '⟠' },
-            { id: 'bnb', name: 'BNB', symbol: 'bnb', icon: 'B' },
+            { id: 'binancecoin', name: 'BNB', symbol: 'bnb', icon: 'B' },
             { id: 'ripple', name: 'XRP', symbol: 'xrp', icon: '✕' },
             { id: 'solana', name: 'Solana', symbol: 'sol', icon: '◎' },
             { id: 'tron', name: 'TRX', symbol: 'trx', icon: 'T' },
@@ -856,14 +856,12 @@
 
         let coinCache = null;
 
-        // Функция получения данных для монет с учётом разных ID
         async function fetchCoinData() {
             try {
                 if (coinCache) {
                     renderCoins(coinCache);
                 }
 
-                // Для каждой монеты свой запрос, так как CoinGecko не поддерживает все сразу
                 const ids = coins.map(c => c.id).join(',');
                 const url =
                     `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
@@ -888,7 +886,6 @@
             coins.forEach((coin, index) => {
                 const info = data[coin.id];
                 if (!info) {
-                    // Если данные не загрузились, показываем прочерк
                     const item = document.createElement('div');
                     item.className = 'coin-item';
                     item.innerHTML = `
