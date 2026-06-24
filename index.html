@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -63,15 +64,14 @@
             padding: 6px 14px; border-radius: 20px; cursor: pointer;
         }
         #indicatorsPage .back-btn:active { transform: scale(0.95); opacity: 0.7; }
-        #indicatorsPage .title { color: #fff; font-size: 20px; font-weight: bold; text-align: center; margin-top: 40px; }
 
         .indicator-square {
             position: absolute;
-            top: 60px;
-            left: 20px;
-            width: 50%;
-            height: 50%;
-            max-height: 50vh;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
             background: rgba(255,255,255,0.05);
             border-radius: 16px;
             border: 1px solid rgba(255,255,255,0.1);
@@ -110,7 +110,8 @@
 
         .crosshair-line-h { pointer-events: none; position: absolute; border-top: 1px dashed rgba(255,255,255,0.4); z-index: 5; }
         .crosshair-line-v { pointer-events: none; position: absolute; border-left: 1px dashed rgba(255,255,255,0.4); z-index: 5; }
-        .crosshair-label { pointer-events: none; position: absolute; color: #ffc107; font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 4px; z-index: 6; }
+        .crosshair-label-price { pointer-events: none; position: absolute; color: #ffc107; font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 4px; z-index: 6; }
+        .crosshair-label-time { pointer-events: none; position: absolute; color: #fff; font-size: 10px; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 4px; z-index: 6; }
     </style>
 </head>
 <body>
@@ -127,7 +128,6 @@
 <div id="indicatorsPage">
     <button class="back-btn" id="backFromIndicators">←</button>
     <div class="indicator-square"><div class="value" id="indicatorValue">1</div></div>
-    <div class="title">Индикаторы</div>
 </div>
 
 <div id="chartPage">
@@ -139,7 +139,8 @@
         <canvas id="priceChart"></canvas>
         <div class="crosshair-line-h" id="crosshairH"></div>
         <div class="crosshair-line-v" id="crosshairV"></div>
-        <div class="crosshair-label" id="crosshairLabel">$0.00</div>
+        <div class="crosshair-label-price" id="crosshairLabelPrice">$0.00</div>
+        <div class="crosshair-label-time" id="crosshairLabelTime">--</div>
     </div>
     <div class="timeframes">
         <button class="timeframe-btn" data-days="0.166">4ч</button>
@@ -170,6 +171,11 @@ let chart = null, currentCoinId = 'bitcoin', currentDays = 1, updateInterval = n
 function getCoinDisplayName(id) {
     const map = { 'bitcoin':'Bitcoin', 'ethereum':'Ethereum', 'binancecoin':'BNB', 'ripple':'XRP', 'solana':'Solana', 'tron':'TRX', 'hyperliquid':'Hype' };
     return map[id] || id;
+}
+
+function formatDate(timestamp) {
+    const d = new Date(timestamp);
+    return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
 async function fetchWithRetry(url, retries=3) {
@@ -210,49 +216,19 @@ function drawLineChart(ctx, prices) {
     if (prices.length>0) currentPrice = prices[prices.length-1][1];
 }
 
-function getPixelForValue(value, axis) {
-    if (!chart) return 0;
-    const scale = axis === 'x' ? chart.scales.x : chart.scales.y;
-    return scale.getPixelForValue(value);
-}
-
-function getValueForPixel(pixel, axis) {
-    if (!chart) return 0;
-    const scale = axis === 'x' ? chart.scales.x : chart.scales.y;
-    return scale.getValueForPixel(pixel);
-}
-
 function updateCrosshair(x, y) {
     const container = document.getElementById('chartContainer');
-    const rect = container.getBoundingClientRect();
     const canvas = document.getElementById('priceChart');
     const canvasRect = canvas.getBoundingClientRect();
 
     if (!chart) return;
 
-    const chartArea = chart.chartArea;
     const xScale = chart.scales.x;
     const yScale = chart.scales.y;
 
-    // Преобразуем координаты в пиксели относительно canvas
     const canvasX = x - canvasRect.left;
     const canvasY = y - canvasRect.top;
 
-    // Проверяем, что точка внутри области графика
-    const xPixels = xScale.getPixelForValue(0);
-    const xPixelsEnd = xScale.getPixelForValue(window._vals.length - 1);
-    const yPixelsTop = yScale.getPixelForValue(Math.max(...window._vals));
-    const yPixelsBottom = yScale.getPixelForValue(Math.min(...window._vals));
-
-    if (canvasX < Math.min(xPixels, xPixelsEnd) || canvasX > Math.max(xPixels, xPixelsEnd) ||
-        canvasY < Math.min(yPixelsTop, yPixelsBottom) || canvasY > Math.max(yPixelsTop, yPixelsBottom)) {
-        document.getElementById('crosshairH').style.display = 'none';
-        document.getElementById('crosshairV').style.display = 'none';
-        document.getElementById('crosshairLabel').style.display = 'none';
-        return;
-    }
-
-    // Находим ближайшую точку данных
     let closestIdx = 0;
     let closestDist = Infinity;
     for (let i = 0; i < window._vals.length; i++) {
@@ -264,34 +240,42 @@ function updateCrosshair(x, y) {
         }
     }
 
-    const price = window._vals[closestIdx];
     const xPos = xScale.getPixelForValue(closestIdx);
-    const yPos = yScale.getPixelForValue(price);
+    const yPos = yScale.getPixelForValue(window._vals[closestIdx]);
 
-    const containerRect = container.getBoundingClientRect();
+    const chartArea = chart.chartArea;
+    if (xPos < chartArea.left || xPos > chartArea.right || yPos < chartArea.top || yPos > chartArea.bottom) {
+        hideCrosshair();
+        return;
+    }
 
-    // Горизонтальная линия
+    const price = window._vals[closestIdx];
+    const timestamp = window._prices[closestIdx][0];
+
     const hLine = document.getElementById('crosshairH');
     hLine.style.display = 'block';
     hLine.style.left = '0px';
     hLine.style.width = '100%';
     hLine.style.top = (yPos) + 'px';
 
-    // Вертикальная линия
     const vLine = document.getElementById('crosshairV');
     vLine.style.display = 'block';
     vLine.style.top = '0px';
     vLine.style.height = '100%';
     vLine.style.left = (xPos) + 'px';
 
-    // Лейбл с ценой
-    const label = document.getElementById('crosshairLabel');
-    label.style.display = 'block';
-    label.textContent = '$' + price.toFixed(2);
-    label.style.left = (xPos + 10) + 'px';
-    label.style.top = (yPos - 10) + 'px';
+    const labelPrice = document.getElementById('crosshairLabelPrice');
+    labelPrice.style.display = 'block';
+    labelPrice.textContent = '$' + price.toFixed(2);
+    labelPrice.style.left = (xPos + 10) + 'px';
+    labelPrice.style.top = (yPos - 10) + 'px';
 
-    // Обновляем цену сверху
+    const labelTime = document.getElementById('crosshairLabelTime');
+    labelTime.style.display = 'block';
+    labelTime.textContent = formatDate(timestamp);
+    labelTime.style.left = (xPos - 30) + 'px';
+    labelTime.style.top = (chartArea.bottom + 6) + 'px';
+
     document.getElementById('chartPriceDisplay').textContent = '$' + price.toFixed(2);
     document.getElementById('chartPriceDisplay').classList.add('touch');
     isTouching = true;
@@ -300,7 +284,8 @@ function updateCrosshair(x, y) {
 function hideCrosshair() {
     document.getElementById('crosshairH').style.display = 'none';
     document.getElementById('crosshairV').style.display = 'none';
-    document.getElementById('crosshairLabel').style.display = 'none';
+    document.getElementById('crosshairLabelPrice').style.display = 'none';
+    document.getElementById('crosshairLabelTime').style.display = 'none';
     if (isTouching) {
         document.getElementById('chartPriceDisplay').textContent = '$' + currentPrice.toFixed(2);
         document.getElementById('chartPriceDisplay').classList.remove('touch');
@@ -351,12 +336,8 @@ document.querySelectorAll('.timeframe-btn').forEach(btn => btn.onclick = functio
     updateChart(currentCoinId, currentDays);
 });
 
-// Обработчики для перекрестия
 document.getElementById('priceChart').addEventListener('mousemove', function(e) {
-    const rect = this.getBoundingClientRect();
-    const x = e.clientX;
-    const y = e.clientY;
-    updateCrosshair(x, y);
+    updateCrosshair(e.clientX, e.clientY);
 });
 
 document.getElementById('priceChart').addEventListener('mouseleave', function() {
@@ -433,3 +414,4 @@ setInterval(fetchCoinData, 60000);
 </script>
 </body>
 </html>
+```
