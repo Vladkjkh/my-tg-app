@@ -219,16 +219,7 @@
             opacity: 0.7;
         }
 
-        #indicatorsPage .page-title {
-            color: #fff;
-            font-size: 20px;
-            font-weight: bold;
-            text-align: center;
-            margin-top: 40px;
-            margin-bottom: 20px;
-        }
-
-        /* Слева наверху квадратик */
+        /* Квадратик слева наверху */
         .fear-greed-square {
             position: absolute;
             top: 60px;
@@ -265,12 +256,20 @@
             font-weight: 600;
         }
 
+        #indicatorsPage .page-title {
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 40px;
+            margin-bottom: 20px;
+        }
+
         .gauge-container {
             position: relative;
             width: 200px;
             height: 120px;
             margin: 0 auto;
-            margin-top: 20px;
         }
 
         .gauge-container canvas {
@@ -1034,4 +1033,5 @@
                 if (chart) {
                     const chartArea = chart.chartArea;
                     const xRatio = (x - chartArea.left) / (chartArea.right - chartArea.left);
-                    const dataIndex = Math.round(xRatio * (window._chartValues.length
+                    const dataIndex = Math.round(xRatio * (window._chartValues.length - 1));
+                    const clamped
