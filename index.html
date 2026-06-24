@@ -69,21 +69,18 @@
             position: absolute;
             top: 60px;
             left: 20px;
-            width: 80px;
-            height: 80px;
+            width: 50%;
+            height: 50%;
+            max-height: 50vh;
             background: rgba(255,255,255,0.05);
-            border-radius: 12px;
+            border-radius: 16px;
             border: 1px solid rgba(255,255,255,0.1);
             display: flex;
             align-items: center;
             justify-content: center;
             backdrop-filter: blur(10px);
         }
-        .indicator-square .value {
-            color: #fff;
-            font-size: 28px;
-            font-weight: bold;
-        }
+        .indicator-square .value { color: #fff; font-size: 72px; font-weight: bold; }
 
         #chartPage {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -110,6 +107,10 @@
         }
         #chartPage .timeframe-btn.active { background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.3); }
         #chartPage .timeframe-btn:active { transform: scale(0.95); }
+
+        .crosshair-line-h { pointer-events: none; position: absolute; border-top: 1px dashed rgba(255,255,255,0.4); z-index: 5; }
+        .crosshair-line-v { pointer-events: none; position: absolute; border-left: 1px dashed rgba(255,255,255,0.4); z-index: 5; }
+        .crosshair-label { pointer-events: none; position: absolute; color: #ffc107; font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 4px; z-index: 6; }
     </style>
 </head>
 <body>
@@ -125,9 +126,7 @@
 
 <div id="indicatorsPage">
     <button class="back-btn" id="backFromIndicators">←</button>
-    <div class="indicator-square">
-        <div class="value" id="indicatorValue">1</div>
-    </div>
+    <div class="indicator-square"><div class="value" id="indicatorValue">1</div></div>
     <div class="title">Индикаторы</div>
 </div>
 
@@ -136,7 +135,12 @@
     <div class="chart-header" id="chartCoinTitle">Bitcoin</div>
     <div class="chart-price-display" id="chartPriceDisplay">$0.00</div>
     <div class="chart-change-display" id="chartChangeDisplay">+0.00%</div>
-    <div class="chart-container"><canvas id="priceChart"></canvas></div>
+    <div class="chart-container" id="chartContainer">
+        <canvas id="priceChart"></canvas>
+        <div class="crosshair-line-h" id="crosshairH"></div>
+        <div class="crosshair-line-v" id="crosshairV"></div>
+        <div class="crosshair-label" id="crosshairLabel">$0.00</div>
+    </div>
     <div class="timeframes">
         <button class="timeframe-btn" data-days="0.166">4ч</button>
         <button class="timeframe-btn" data-days="0.5">12ч</button>
@@ -187,6 +191,8 @@ function drawLineChart(ctx, prices) {
     const labels = prices.map(p => { const d = new Date(p[0]); return currentDays>=180 ? d.toLocaleDateString('ru-RU',{month:'short',year:'numeric'}) : d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'}); });
     const values = prices.map(p => p[1]);
     window._vals = values;
+    window._labels = labels;
+    window._prices = prices;
     const grad = ctx.createLinearGradient(0,0,0,300);
     grad.addColorStop(0,'rgba(255,193,7,0.3)'); grad.addColorStop(1,'rgba(255,193,7,0.0)');
     chart = new Chart(ctx, {
@@ -194,26 +200,112 @@ function drawLineChart(ctx, prices) {
         data:{ labels, datasets:[{ label:'Цена USD', data:values, borderColor:'#ffc107', backgroundColor:grad, fill:true, tension:0.4, pointRadius:0, pointHoverRadius:6, borderWidth:2 }] },
         options:{
             responsive:true, maintainAspectRatio:false,
-            plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:ctx => '$'+ctx.parsed.y.toFixed(2) } } },
+            plugins:{ legend:{display:false}, tooltip:{ enabled:false } },
             scales:{
                 x:{ grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'rgba(255,255,255,0.4)', maxTicksLimit:10, maxRotation:30, autoSkip:true} },
                 y:{ grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'rgba(255,255,255,0.4)', callback:v => '$'+v.toFixed(0)} }
-            },
-            onHover:(e,el) => {
-                if (el && el.length>0) {
-                    const idx = el[0].index, price = window._vals[idx];
-                    document.getElementById('chartPriceDisplay').textContent = '$'+price.toFixed(2);
-                    document.getElementById('chartPriceDisplay').classList.add('touch');
-                    isTouching = true;
-                } else if (isTouching) {
-                    document.getElementById('chartPriceDisplay').textContent = '$'+currentPrice.toFixed(2);
-                    document.getElementById('chartPriceDisplay').classList.remove('touch');
-                    isTouching = false;
-                }
             }
         }
     });
     if (prices.length>0) currentPrice = prices[prices.length-1][1];
+}
+
+function getPixelForValue(value, axis) {
+    if (!chart) return 0;
+    const scale = axis === 'x' ? chart.scales.x : chart.scales.y;
+    return scale.getPixelForValue(value);
+}
+
+function getValueForPixel(pixel, axis) {
+    if (!chart) return 0;
+    const scale = axis === 'x' ? chart.scales.x : chart.scales.y;
+    return scale.getValueForPixel(pixel);
+}
+
+function updateCrosshair(x, y) {
+    const container = document.getElementById('chartContainer');
+    const rect = container.getBoundingClientRect();
+    const canvas = document.getElementById('priceChart');
+    const canvasRect = canvas.getBoundingClientRect();
+
+    if (!chart) return;
+
+    const chartArea = chart.chartArea;
+    const xScale = chart.scales.x;
+    const yScale = chart.scales.y;
+
+    // Преобразуем координаты в пиксели относительно canvas
+    const canvasX = x - canvasRect.left;
+    const canvasY = y - canvasRect.top;
+
+    // Проверяем, что точка внутри области графика
+    const xPixels = xScale.getPixelForValue(0);
+    const xPixelsEnd = xScale.getPixelForValue(window._vals.length - 1);
+    const yPixelsTop = yScale.getPixelForValue(Math.max(...window._vals));
+    const yPixelsBottom = yScale.getPixelForValue(Math.min(...window._vals));
+
+    if (canvasX < Math.min(xPixels, xPixelsEnd) || canvasX > Math.max(xPixels, xPixelsEnd) ||
+        canvasY < Math.min(yPixelsTop, yPixelsBottom) || canvasY > Math.max(yPixelsTop, yPixelsBottom)) {
+        document.getElementById('crosshairH').style.display = 'none';
+        document.getElementById('crosshairV').style.display = 'none';
+        document.getElementById('crosshairLabel').style.display = 'none';
+        return;
+    }
+
+    // Находим ближайшую точку данных
+    let closestIdx = 0;
+    let closestDist = Infinity;
+    for (let i = 0; i < window._vals.length; i++) {
+        const px = xScale.getPixelForValue(i);
+        const dist = Math.abs(px - canvasX);
+        if (dist < closestDist) {
+            closestDist = dist;
+            closestIdx = i;
+        }
+    }
+
+    const price = window._vals[closestIdx];
+    const xPos = xScale.getPixelForValue(closestIdx);
+    const yPos = yScale.getPixelForValue(price);
+
+    const containerRect = container.getBoundingClientRect();
+
+    // Горизонтальная линия
+    const hLine = document.getElementById('crosshairH');
+    hLine.style.display = 'block';
+    hLine.style.left = '0px';
+    hLine.style.width = '100%';
+    hLine.style.top = (yPos) + 'px';
+
+    // Вертикальная линия
+    const vLine = document.getElementById('crosshairV');
+    vLine.style.display = 'block';
+    vLine.style.top = '0px';
+    vLine.style.height = '100%';
+    vLine.style.left = (xPos) + 'px';
+
+    // Лейбл с ценой
+    const label = document.getElementById('crosshairLabel');
+    label.style.display = 'block';
+    label.textContent = '$' + price.toFixed(2);
+    label.style.left = (xPos + 10) + 'px';
+    label.style.top = (yPos - 10) + 'px';
+
+    // Обновляем цену сверху
+    document.getElementById('chartPriceDisplay').textContent = '$' + price.toFixed(2);
+    document.getElementById('chartPriceDisplay').classList.add('touch');
+    isTouching = true;
+}
+
+function hideCrosshair() {
+    document.getElementById('crosshairH').style.display = 'none';
+    document.getElementById('crosshairV').style.display = 'none';
+    document.getElementById('crosshairLabel').style.display = 'none';
+    if (isTouching) {
+        document.getElementById('chartPriceDisplay').textContent = '$' + currentPrice.toFixed(2);
+        document.getElementById('chartPriceDisplay').classList.remove('touch');
+        isTouching = false;
+    }
 }
 
 async function updateChart(coinId, days) {
@@ -229,6 +321,7 @@ async function updateChart(coinId, days) {
     const ctx = document.getElementById('priceChart').getContext('2d');
     if (chart) chart.destroy();
     drawLineChart(ctx, prices);
+    hideCrosshair();
 }
 
 function openChartPage(coinId) {
@@ -256,6 +349,34 @@ document.querySelectorAll('.timeframe-btn').forEach(btn => btn.onclick = functio
     currentDays = parseFloat(this.dataset.days);
     isTouching = false;
     updateChart(currentCoinId, currentDays);
+});
+
+// Обработчики для перекрестия
+document.getElementById('priceChart').addEventListener('mousemove', function(e) {
+    const rect = this.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    updateCrosshair(x, y);
+});
+
+document.getElementById('priceChart').addEventListener('mouseleave', function() {
+    hideCrosshair();
+});
+
+document.getElementById('priceChart').addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    updateCrosshair(touch.clientX, touch.clientY);
+}, { passive: false });
+
+document.getElementById('priceChart').addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    updateCrosshair(touch.clientX, touch.clientY);
+}, { passive: false });
+
+document.getElementById('priceChart').addEventListener('touchend', function(e) {
+    hideCrosshair();
 });
 
 const coins = [
