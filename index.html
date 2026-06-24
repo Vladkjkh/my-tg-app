@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -55,7 +56,7 @@
 
         #indicatorsPage {
             display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-            background:#0a0e27; z-index:999; padding:20px;
+            background:#0a0e27; z-index:999; padding:20px; overflow-y:auto;
         }
         #indicatorsPage .back-btn {
             position:absolute; top:16px; left:16px; z-index:10;
@@ -63,6 +64,24 @@
             padding:6px 14px; border-radius:20px; cursor:pointer;
         }
         #indicatorsPage .back-btn:active { transform:scale(0.95); opacity:0.7; }
+
+        .fear-greed-box {
+            width:100%; max-width:360px; margin:50px auto 0; padding:20px 24px;
+            background:rgba(255,255,255,0.05); border-radius:16px;
+            border:1px solid rgba(255,255,255,0.08);
+            backdrop-filter:blur(10px); text-align:center;
+        }
+        .fear-greed-box .label { color:rgba(255,255,255,0.4); font-size:10px; text-transform:uppercase; letter-spacing:0.5px; }
+        .fear-greed-box .value { color:#fff; font-size:56px; font-weight:bold; margin:6px 0; }
+        .fear-greed-box .status { font-size:18px; font-weight:600; padding:4px 16px; border-radius:20px; display:inline-block; }
+        .fear-greed-box .status.green { color:#4caf50; background:rgba(76,175,80,0.15); }
+        .fear-greed-box .status.yellow { color:#ffc107; background:rgba(255,193,7,0.15); }
+        .fear-greed-box .status.red { color:#f44336; background:rgba(244,67,54,0.15); }
+        .fear-greed-box .sub { color:rgba(255,255,255,0.25); font-size:10px; margin-top:6px; letter-spacing:0.3px; }
+        .fear-greed-box .row { display:flex; justify-content:space-between; margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.05); }
+        .fear-greed-box .row .item { flex:1; }
+        .fear-greed-box .row .item .lbl { color:rgba(255,255,255,0.3); font-size:8px; text-transform:uppercase; }
+        .fear-greed-box .row .item .val { color:rgba(255,255,255,0.6); font-size:12px; font-weight:600; margin-top:2px; }
 
         #chartPage {
             display:none; position:fixed; top:0; left:0; width:100%; height:100%;
@@ -108,6 +127,26 @@
 
 <div id="indicatorsPage">
     <button class="back-btn" id="backFromIndicators">←</button>
+    <div class="fear-greed-box">
+        <div class="label">Индекс страха и жадности</div>
+        <div class="value" id="fgValue">--</div>
+        <div class="status" id="fgStatus">Загрузка...</div>
+        <div class="row">
+            <div class="item">
+                <div class="lbl">Изменение</div>
+                <div class="val" id="fgChange">--</div>
+            </div>
+            <div class="item">
+                <div class="lbl">Вчера</div>
+                <div class="val" id="fgYesterday">--</div>
+            </div>
+            <div class="item">
+                <div class="lbl">Неделя</div>
+                <div class="val" id="fgWeek">--</div>
+            </div>
+        </div>
+        <div class="sub">Данные: alternative.me</div>
+    </div>
 </div>
 
 <div id="chartPage">
@@ -138,7 +177,7 @@ const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
 
 const $ = id => document.getElementById(id);
 
-$('mainBtn').onclick = () => { $('appContainer').style.display = 'none'; $('indicatorsPage').style.display = 'flex'; };
+$('mainBtn').onclick = () => { $('appContainer').style.display = 'none'; $('indicatorsPage').style.display = 'flex'; loadFearGreed(); };
 $('backFromIndicators').onclick = () => { $('indicatorsPage').style.display = 'none'; $('appContainer').style.display = 'flex'; };
 
 let chart = null, currentCoinId = 'bitcoin', currentDays = 1, updateInterval = null, currentPrice = 0, isTouching = false;
@@ -149,6 +188,48 @@ async function fetchWithRetry(url, retries=3) {
     for (let i=0; i<retries; i++) {
         try { const r = await fetch(url); if (r.ok) return await r.json(); }
         catch(e) { if (i===retries-1) throw e; await new Promise(r => setTimeout(r, 1000*(i+1))); }
+    }
+}
+
+async function loadFearGreed() {
+    try {
+        // Текущий индекс
+        const current = await fetchWithRetry('https://api.alternative.me/fng/?limit=2');
+        const data = current.data;
+        const val = parseInt(data[0].value);
+        const cls = data[0].value_classification;
+
+        $('fgValue').textContent = val;
+        $('fgStatus').textContent = cls;
+        const st = $('fgStatus');
+        st.className = 'status';
+        if (val <= 25) st.classList.add('red');
+        else if (val <= 50) st.classList.add('yellow');
+        else st.classList.add('green');
+
+        // Изменение за день
+        if (data.length > 1) {
+            const prevVal = parseInt(data[1].value);
+            const diff = val - prevVal;
+            $('fgChange').textContent = (diff > 0 ? '+' : '') + diff;
+            $('fgChange').style.color = diff > 0 ? '#4caf50' : diff < 0 ? '#f44336' : 'rgba(255,255,255,0.6)';
+        }
+
+        // Исторические данные для вчера и недели
+        const history = await fetchWithRetry('https://api.alternative.me/fng/?limit=8');
+        if (history.data && history.data.length >= 3) {
+            $('fgYesterday').textContent = history.data[1].value || '--';
+            if (history.data.length >= 7) {
+                $('fgWeek').textContent = history.data[6].value || '--';
+            }
+        }
+
+    } catch(e) {
+        $('fgValue').textContent = '--';
+        $('fgStatus').textContent = 'Ошибка';
+        $('fgChange').textContent = '--';
+        $('fgYesterday').textContent = '--';
+        $('fgWeek').textContent = '--';
     }
 }
 
@@ -321,3 +402,4 @@ setInterval(loadCoins, 60000);
 </script>
 </body>
 </html>
+```
