@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -22,7 +23,7 @@
         .top-btn {
             display: block; width: calc(100% - 32px); margin: 20px 16px 0 16px; padding: 20px 0;
             background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px;
-            color: #fff; font-size: 20px; font-weight: bold; cursor: pointer; backdrop-filter: blur(8px);
+            color: #fff; font-size: 24px; font-weight: bold; cursor: pointer; backdrop-filter: blur(8px);
             text-align: center; transition: 0.2s; flex-shrink: 0;
         }
         .top-btn:active { transform: scale(0.98); background: rgba(255,255,255,0.2); }
@@ -65,14 +66,16 @@
         #indicatorsPage .back-btn:active { transform: scale(0.95); opacity: 0.7; }
         #indicatorsPage .title { color: #fff; font-size: 20px; font-weight: bold; text-align: center; margin-top: 40px; }
 
+        /* Квадрат с цифрой 1 - увеличен до середины экрана */
         .indicator-square {
             position: absolute;
-            top: 60px;
-            left: 20px;
-            width: 80px;
-            height: 80px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
             background: rgba(255,255,255,0.05);
-            border-radius: 12px;
+            border-radius: 16px;
             border: 1px solid rgba(255,255,255,0.1);
             display: flex;
             align-items: center;
@@ -81,7 +84,7 @@
         }
         .indicator-square .value {
             color: #fff;
-            font-size: 28px;
+            font-size: 72px;
             font-weight: bold;
         }
 
@@ -312,3 +315,4 @@ setInterval(fetchCoinData, 60000);
 </script>
 </body>
 </html>
+```
