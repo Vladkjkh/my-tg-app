@@ -64,19 +64,22 @@
         }
         #indicatorsPage .back-btn:active { transform:scale(0.95); opacity:0.7; }
 
-        .fear-greed-box {
-            width:100%; padding:12px 16px; margin-top:50px;
-            background:rgba(255,255,255,0.05); border-radius:12px;
-            border:1px solid rgba(255,255,255,0.1);
-            display:flex; align-items:center; justify-content:space-between;
-            backdrop-filter:blur(10px);
+        .indicator-row {
+            display:flex; flex-wrap:wrap; gap:10px; margin-top:50px;
         }
-        .fear-greed-box .label { color:rgba(255,255,255,0.5); font-size:11px; text-transform:uppercase; letter-spacing:0.5px; }
-        .fear-greed-box .value { color:#fff; font-size:24px; font-weight:bold; }
-        .fear-greed-box .status { font-size:14px; font-weight:600; padding:2px 10px; border-radius:20px; }
-        .fear-greed-box .status.green { color:#4caf50; background:rgba(76,175,80,0.15); }
-        .fear-greed-box .status.yellow { color:#ffc107; background:rgba(255,193,7,0.15); }
-        .fear-greed-box .status.red { color:#f44336; background:rgba(244,67,54,0.15); }
+        .indicator-box {
+            flex:1; min-width:calc(50% - 5px); padding:10px 12px;
+            background:rgba(255,255,255,0.05); border-radius:10px;
+            border:1px solid rgba(255,255,255,0.08);
+            backdrop-filter:blur(8px);
+        }
+        .indicator-box .label { color:rgba(255,255,255,0.4); font-size:9px; text-transform:uppercase; letter-spacing:0.3px; }
+        .indicator-box .value { color:#fff; font-size:18px; font-weight:bold; margin-top:2px; }
+        .indicator-box .sub { color:rgba(255,255,255,0.5); font-size:11px; }
+        .indicator-box .status { font-size:12px; font-weight:600; padding:2px 8px; border-radius:12px; display:inline-block; margin-top:2px; }
+        .indicator-box .status.green { color:#4caf50; background:rgba(76,175,80,0.15); }
+        .indicator-box .status.yellow { color:#ffc107; background:rgba(255,193,7,0.15); }
+        .indicator-box .status.red { color:#f44336; background:rgba(244,67,54,0.15); }
 
         #chartPage {
             display:none; position:fixed; top:0; left:0; width:100%; height:100%;
@@ -122,12 +125,27 @@
 
 <div id="indicatorsPage">
     <button class="back-btn" id="backFromIndicators">←</button>
-    <div class="fear-greed-box">
-        <span class="label">Страх и жадность</span>
-        <span>
-            <span class="value" id="fgValue">--</span>
-            <span class="status" id="fgStatus">Загрузка...</span>
-        </span>
+    <div class="indicator-row">
+        <div class="indicator-box">
+            <div class="label">Страх и жадность</div>
+            <div class="value" id="fgValue">--</div>
+            <div class="status" id="fgStatus">Загрузка...</div>
+        </div>
+        <div class="indicator-box">
+            <div class="label">BTC Доминирование</div>
+            <div class="value" id="btcDomValue">--</div>
+            <div class="sub">%</div>
+        </div>
+        <div class="indicator-box">
+            <div class="label">Рыночная капитализация</div>
+            <div class="value" id="marketCapValue">--</div>
+            <div class="sub" id="marketCapSub"></div>
+        </div>
+        <div class="indicator-box">
+            <div class="label">Объём 24ч</div>
+            <div class="value" id="volumeValue">--</div>
+            <div class="sub" id="volumeSub"></div>
+        </div>
     </div>
 </div>
 
@@ -159,7 +177,7 @@ const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
 
 const $ = id => document.getElementById(id);
 
-$('mainBtn').onclick = () => { $('appContainer').style.display = 'none'; $('indicatorsPage').style.display = 'flex'; loadFearGreed(); };
+$('mainBtn').onclick = () => { $('appContainer').style.display = 'none'; $('indicatorsPage').style.display = 'flex'; loadIndicators(); };
 $('backFromIndicators').onclick = () => { $('indicatorsPage').style.display = 'none'; $('appContainer').style.display = 'flex'; };
 
 let chart = null, currentCoinId = 'bitcoin', currentDays = 1, updateInterval = null, currentPrice = 0, isTouching = false;
@@ -173,21 +191,57 @@ async function fetchWithRetry(url, retries=3) {
     }
 }
 
-async function loadFearGreed() {
+async function loadIndicators() {
     try {
-        const data = await fetchWithRetry('https://api.alternative.me/fng/?limit=1');
-        const val = parseInt(data.data[0].value);
-        const cls = data.data[0].value_classification;
+        // Страх и жадность
+        const fg = await fetchWithRetry('https://api.alternative.me/fng/?limit=1');
+        const val = parseInt(fg.data[0].value);
+        const cls = fg.data[0].value_classification;
         $('fgValue').textContent = val;
         $('fgStatus').textContent = cls;
-        const statusEl = $('fgStatus');
-        statusEl.className = 'status';
-        if (val <= 25) statusEl.classList.add('red');
-        else if (val <= 50) statusEl.classList.add('yellow');
-        else statusEl.classList.add('green');
+        const st = $('fgStatus');
+        st.className = 'status';
+        if (val <= 25) st.classList.add('red');
+        else if (val <= 50) st.classList.add('yellow');
+        else st.classList.add('green');
+
+        // Глобальные данные
+        const global = await fetchWithRetry('https://api.coingecko.com/api/v3/global');
+        const data = global.data;
+
+        // BTC доминирование
+        const btcDom = data.market_cap_percentage.btc;
+        $('btcDomValue').textContent = btcDom.toFixed(1);
+
+        // Рыночная капитализация
+        const cap = data.total_market_cap.usd;
+        if (cap >= 1e12) {
+            $('marketCapValue').textContent = (cap / 1e12).toFixed(2);
+            $('marketCapSub').textContent = 'трлн $';
+        } else if (cap >= 1e9) {
+            $('marketCapValue').textContent = (cap / 1e9).toFixed(2);
+            $('marketCapSub').textContent = 'млрд $';
+        } else {
+            $('marketCapValue').textContent = cap.toFixed(0);
+            $('marketCapSub').textContent = '$';
+        }
+
+        // Объём 24ч
+        const vol = data.total_volume.usd;
+        if (vol >= 1e9) {
+            $('volumeValue').textContent = (vol / 1e9).toFixed(2);
+            $('volumeSub').textContent = 'млрд $';
+        } else {
+            $('volumeValue').textContent = vol.toFixed(0);
+            $('volumeSub').textContent = '$';
+        }
+
     } catch(e) {
         $('fgValue').textContent = '--';
         $('fgStatus').textContent = 'Ошибка';
+        $('btcDomValue').textContent = '--';
+        $('marketCapValue').textContent = '--';
+        $('volumeValue').textContent = '--';
     }
 }
 
