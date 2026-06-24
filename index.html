@@ -65,18 +65,19 @@
         #indicatorsPage .back-btn:active { transform:scale(0.95); opacity:0.7; }
 
         .fear-greed-box {
-            width:100%; max-width:280px; padding:8px 14px; margin:50px auto 0;
-            background:rgba(255,255,255,0.05); border-radius:10px;
+            width:100%; max-width:200px; padding:10px 14px; margin:50px auto 0;
+            background:rgba(255,255,255,0.05); border-radius:12px;
             border:1px solid rgba(255,255,255,0.08);
-            display:flex; align-items:center; justify-content:space-between;
+            text-align:center;
             backdrop-filter:blur(10px);
         }
-        .fear-greed-box .label { color:rgba(255,255,255,0.5); font-size:10px; font-weight:600; letter-spacing:0.3px; }
-        .fear-greed-box .value { color:#fff; font-size:18px; font-weight:bold; margin:0 6px; }
-        .fear-greed-box .status { font-size:11px; font-weight:600; padding:1px 8px; border-radius:12px; }
+        .fear-greed-box .label { color:rgba(255,255,255,0.4); font-size:9px; text-transform:uppercase; letter-spacing:0.5px; }
+        .fear-greed-box .value { color:#fff; font-size:32px; font-weight:bold; margin:2px 0; }
+        .fear-greed-box .status { font-size:12px; font-weight:600; display:inline-block; padding:2px 10px; border-radius:12px; }
         .fear-greed-box .status.green { color:#4caf50; background:rgba(76,175,80,0.15); }
         .fear-greed-box .status.yellow { color:#ffc107; background:rgba(255,193,7,0.15); }
         .fear-greed-box .status.red { color:#f44336; background:rgba(244,67,54,0.15); }
+        .fear-greed-box .sub { color:rgba(255,255,255,0.2); font-size:8px; text-transform:uppercase; letter-spacing:0.3px; margin-top:2px; }
 
         #chartPage {
             display:none; position:fixed; top:0; left:0; width:100%; height:100%;
@@ -123,11 +124,10 @@
 <div id="indicatorsPage">
     <button class="back-btn" id="backFromIndicators">←</button>
     <div class="fear-greed-box">
-        <span class="label">Страх и жадность</span>
-        <span>
-            <span class="value" id="fgValue">--</span>
-            <span class="status" id="fgStatus">Загрузка...</span>
-        </span>
+        <div class="label">Индекс страха и жадности</div>
+        <div class="value" id="fgValue">--</div>
+        <div class="status" id="fgStatus">Загрузка...</div>
+        <div class="sub">crypto</div>
     </div>
 </div>
 
