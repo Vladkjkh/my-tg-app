@@ -65,22 +65,20 @@
         #indicatorsPage .back-btn:active { transform:scale(0.95); opacity:0.7; }
 
         .fear-greed-box {
-            width:100%; margin:50px auto 0; padding:20px 24px;
+            width:100%; margin:50px auto 0; padding:16px 20px 20px;
             background:rgba(255,255,255,0.05); border-radius:16px;
             border:1px solid rgba(255,255,255,0.08);
             backdrop-filter:blur(10px); text-align:center;
         }
         .fear-greed-box .label { color:rgba(255,255,255,0.4); font-size:10px; text-transform:uppercase; letter-spacing:0.5px; }
-        .fear-greed-box .value { color:#fff; font-size:56px; font-weight:bold; margin:6px 0; }
-        .fear-greed-box .status { font-size:18px; font-weight:600; padding:4px 16px; border-radius:20px; display:inline-block; }
+        .fear-greed-box .value { color:#fff; font-size:48px; font-weight:bold; margin:4px 0; }
+        .fear-greed-box .status { font-size:16px; font-weight:600; padding:3px 14px; border-radius:20px; display:inline-block; }
         .fear-greed-box .status.green { color:#4caf50; background:rgba(76,175,80,0.15); }
         .fear-greed-box .status.yellow { color:#ffc107; background:rgba(255,193,7,0.15); }
         .fear-greed-box .status.red { color:#f44336; background:rgba(244,67,54,0.15); }
-        .fear-greed-box .row { display:flex; justify-content:space-around; margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.05); }
-        .fear-greed-box .row .item { text-align:center; }
-        .fear-greed-box .row .item .lbl { color:rgba(255,255,255,0.3); font-size:8px; text-transform:uppercase; }
-        .fear-greed-box .row .item .val { color:rgba(255,255,255,0.6); font-size:12px; font-weight:600; margin-top:2px; }
-        .fear-greed-box .sub { color:rgba(255,255,255,0.25); font-size:10px; margin-top:6px; letter-spacing:0.3px; }
+        .fear-greed-box .chart-container { height:80px; margin-top:12px; position:relative; }
+        .fear-greed-box .chart-container canvas { width:100% !important; height:100% !important; }
+        .fear-greed-box .sub { color:rgba(255,255,255,0.2); font-size:9px; margin-top:6px; letter-spacing:0.3px; }
 
         #chartPage {
             display:none; position:fixed; top:0; left:0; width:100%; height:100%;
@@ -98,8 +96,8 @@
         #chartPage .chart-change-display { text-align:center; font-size:16px; font-weight:600; margin-bottom:8px; }
         #chartPage .chart-change-display.green { color:#4caf50; }
         #chartPage .chart-change-display.red { color:#f44336; }
-        #chartPage .chart-container { flex:1; width:100%; min-height:0; position:relative; touch-action:none; }
-        #chartPage .chart-container canvas { width:100% !important; height:100% !important; touch-action:none; }
+        #chartPage .chart-container-main { flex:1; width:100%; min-height:0; position:relative; touch-action:none; }
+        #chartPage .chart-container-main canvas { width:100% !important; height:100% !important; touch-action:none; }
         #chartPage .timeframes { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; padding:8px 0 12px; flex-shrink:0; }
         #chartPage .timeframe-btn {
             background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:8px;
@@ -130,20 +128,7 @@
         <div class="label">Индекс страха и жадности</div>
         <div class="value" id="fgValue">--</div>
         <div class="status" id="fgStatus">Загрузка...</div>
-        <div class="row">
-            <div class="item">
-                <div class="lbl">Изменение</div>
-                <div class="val" id="fgChange">--</div>
-            </div>
-            <div class="item">
-                <div class="lbl">Вчера</div>
-                <div class="val" id="fgYesterday">--</div>
-            </div>
-            <div class="item">
-                <div class="lbl">Неделя</div>
-                <div class="val" id="fgWeek">--</div>
-            </div>
-        </div>
+        <div class="chart-container"><canvas id="fgChart"></canvas></div>
         <div class="sub">Данные: alternative.me</div>
     </div>
 </div>
@@ -153,7 +138,7 @@
     <div class="chart-header" id="chartCoinTitle">Bitcoin</div>
     <div class="chart-price-display" id="chartPriceDisplay">$0.00</div>
     <div class="chart-change-display" id="chartChangeDisplay">+0.00%</div>
-    <div class="chart-container" id="chartContainer">
+    <div class="chart-container-main" id="chartContainer">
         <canvas id="priceChart"></canvas>
         <div class="crosshair-line-h" id="crosshairH"></div>
         <div class="crosshair-line-v" id="crosshairV"></div>
@@ -180,6 +165,7 @@ $('mainBtn').onclick = () => { $('appContainer').style.display = 'none'; $('indi
 $('backFromIndicators').onclick = () => { $('indicatorsPage').style.display = 'none'; $('appContainer').style.display = 'flex'; };
 
 let chart = null, currentCoinId = 'bitcoin', currentDays = 1, updateInterval = null, currentPrice = 0, isTouching = false;
+let fgChart = null;
 
 const coinMap = { 'bitcoin':'Bitcoin', 'ethereum':'Ethereum', 'binancecoin':'BNB', 'ripple':'XRP', 'solana':'Solana', 'tron':'TRX', 'hyperliquid':'Hype' };
 
@@ -192,11 +178,12 @@ async function fetchWithRetry(url, retries=3) {
 
 async function loadFearGreed() {
     try {
-        const current = await fetchWithRetry('https://api.alternative.me/fng/?limit=2');
-        const data = current.data;
-        const val = parseInt(data[0].value);
-        const cls = data[0].value_classification;
+        const data = await fetchWithRetry('https://api.alternative.me/fng/?limit=30');
+        const items = data.data || [];
+        if (items.length === 0) throw new Error('Нет данных');
 
+        const val = parseInt(items[0].value);
+        const cls = items[0].value_classification;
         $('fgValue').textContent = val;
         $('fgStatus').textContent = cls;
         const st = $('fgStatus');
@@ -205,27 +192,56 @@ async function loadFearGreed() {
         else if (val <= 50) st.classList.add('yellow');
         else st.classList.add('green');
 
-        if (data.length > 1) {
-            const prevVal = parseInt(data[1].value);
-            const diff = val - prevVal;
-            $('fgChange').textContent = (diff > 0 ? '+' : '') + diff;
-            $('fgChange').style.color = diff > 0 ? '#4caf50' : diff < 0 ? '#f44336' : 'rgba(255,255,255,0.6)';
-        }
+        // График
+        const labels = items.map(item => {
+            const d = new Date(item.timestamp * 1000);
+            return d.toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit' });
+        }).reverse();
+        const values = items.map(item => parseInt(item.value)).reverse();
 
-        const history = await fetchWithRetry('https://api.alternative.me/fng/?limit=8');
-        if (history.data && history.data.length >= 3) {
-            $('fgYesterday').textContent = history.data[1].value || '--';
-            if (history.data.length >= 7) {
-                $('fgWeek').textContent = history.data[6].value || '--';
+        const ctx = $('fgChart').getContext('2d');
+        if (fgChart) fgChart.destroy();
+
+        const grad = ctx.createLinearGradient(0, 0, 0, 80);
+        grad.addColorStop(0, 'rgba(255,193,7,0.3)');
+        grad.addColorStop(1, 'rgba(255,193,7,0.0)');
+
+        fgChart = new Chart(ctx, {
+            type:'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    borderColor: '#ffc107',
+                    backgroundColor: grad,
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: 'rgba(255,255,255,0.3)', maxTicksLimit: 8, font: { size: 8 } }
+                    },
+                    y: {
+                        min: 0,
+                        max: 100,
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 8 }, stepSize: 50 }
+                    }
+                }
             }
-        }
+        });
 
     } catch(e) {
         $('fgValue').textContent = '--';
         $('fgStatus').textContent = 'Ошибка';
-        $('fgChange').textContent = '--';
-        $('fgYesterday').textContent = '--';
-        $('fgWeek').textContent = '--';
     }
 }
 
