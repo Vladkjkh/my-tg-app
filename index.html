@@ -245,9 +245,12 @@ function updateFgCrosshair(x, y) {
     }
 
     const val = fgData[idx];
-    $('fgCrosshairH').style.cssText = `display:block;left:0;width:100%;top:${yPos - rect.top}px;`;
-    $('fgCrosshairV').style.cssText = `display:block;top:0;height:100%;left:${xPos - rect.left}px;`;
-    $('fgCrosshairLabel').style.cssText = `display:block;left:${xPos - rect.left + 8}px;top:${yPos - rect.top - 10}px;`;
+    const topOffset = rect.top;
+    const leftOffset = rect.left;
+
+    $('fgCrosshairH').style.cssText = `display:block;left:0;width:100%;top:${yPos - topOffset}px;`;
+    $('fgCrosshairV').style.cssText = `display:block;top:0;height:100%;left:${xPos - leftOffset}px;`;
+    $('fgCrosshairLabel').style.cssText = `display:block;left:${xPos - leftOffset + 8}px;top:${yPos - topOffset - 10}px;`;
     $('fgCrosshairLabel').textContent = val;
 }
 
@@ -418,9 +421,13 @@ function updateCrosshair(x, y) {
     }
 
     const price = window._vals[idx];
-    $('crosshairH').style.cssText = `display:block;left:0;width:100%;top:${yPos}px;`;
-    $('crosshairV').style.cssText = `display:block;top:0;height:100%;left:${xPos}px;`;
-    $('crosshairLabel').style.cssText = `display:block;left:${xPos+10}px;top:${yPos-10}px;`;
+    const containerRect = $('chartContainer').getBoundingClientRect();
+    const topOffset = containerRect.top;
+    const leftOffset = containerRect.left;
+
+    $('crosshairH').style.cssText = `display:block;left:0;width:100%;top:${yPos - topOffset}px;`;
+    $('crosshairV').style.cssText = `display:block;top:0;height:100%;left:${xPos - leftOffset}px;`;
+    $('crosshairLabel').style.cssText = `display:block;left:${xPos - leftOffset + 10}px;top:${yPos - topOffset - 10}px;`;
     $('crosshairLabel').textContent = '$'+price.toFixed(2);
     $('chartPriceDisplay').textContent = '$'+price.toFixed(2);
     $('chartPriceDisplay').classList.add('touch');
