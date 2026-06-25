@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -87,6 +88,10 @@
         .fear-greed-box .fg-timeframes button:active { transform:scale(0.95); }
         .fear-greed-box .sub { color:rgba(255,255,255,0.2); font-size:9px; margin-top:6px; letter-spacing:0.3px; }
 
+        .fg-crosshair-line-h { pointer-events:none; position:absolute; border-top:1px dashed rgba(255,255,255,0.4); z-index:5; }
+        .fg-crosshair-line-v { pointer-events:none; position:absolute; border-left:1px dashed rgba(255,255,255,0.4); z-index:5; }
+        .fg-crosshair-label { pointer-events:none; position:absolute; color:#ffc107; font-size:10px; font-weight:bold; background:rgba(0,0,0,0.7); padding:2px 6px; border-radius:4px; z-index:6; }
+
         #chartPage {
             display:none; position:fixed; top:0; left:0; width:100%; height:100%;
             background:#0a0e27; z-index:999; flex-direction:column; padding:12px;
@@ -135,7 +140,12 @@
         <div class="label">Индекс страха и жадности</div>
         <div class="value" id="fgValue">--</div>
         <div class="status" id="fgStatus">Загрузка...</div>
-        <div class="chart-wrap"><canvas id="fgChart"></canvas></div>
+        <div class="chart-wrap" id="fgChartWrap">
+            <canvas id="fgChart"></canvas>
+            <div class="fg-crosshair-line-h" id="fgCrosshairH"></div>
+            <div class="fg-crosshair-line-v" id="fgCrosshairV"></div>
+            <div class="fg-crosshair-label" id="fgCrosshairLabel">0</div>
+        </div>
         <div class="fg-timeframes">
             <button class="active" data-fg-days="30">1м</button>
             <button data-fg-days="90">3м</button>
@@ -181,6 +191,7 @@ $('backFromIndicators').onclick = () => { $('indicatorsPage').style.display = 'n
 let chart = null, currentCoinId = 'bitcoin', currentDays = 1, updateInterval = null, currentPrice = 0, isTouching = false;
 let fgChart = null;
 let fgDays = 30;
+let fgData = [];
 
 const coinMap = { 'bitcoin':'Bitcoin', 'ethereum':'Ethereum', 'binancecoin':'BNB', 'ripple':'XRP', 'solana':'Solana', 'tron':'TRX', 'hyperliquid':'Hype' };
 
@@ -202,6 +213,51 @@ document.querySelectorAll('.fg-timeframes button').forEach(btn => {
     };
 });
 
+function updateFgCrosshair(x, y) {
+    const wrap = $('fgChartWrap');
+    const canvas = $('fgChart');
+    const rect = wrap.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
+
+    if (!fgChart || !fgData.length) {
+        hideFgCrosshair();
+        return;
+    }
+
+    const xScale = fgChart.scales.x;
+    const yScale = fgChart.scales.y;
+    const canvasX = x - canvasRect.left;
+    const canvasY = y - canvasRect.top;
+
+    let idx = 0, dist = Infinity;
+    for (let i=0; i<fgData.length; i++) {
+        const px = xScale.getPixelForValue(i);
+        const d = Math.abs(px - canvasX);
+        if (d < dist) { dist = d; idx = i; }
+    }
+
+    const xPos = xScale.getPixelForValue(idx);
+    const yPos = yScale.getPixelForValue(fgData[idx]);
+    const area = fgChart.chartArea;
+
+    if (xPos < area.left || xPos > area.right || yPos < area.top || yPos > area.bottom) {
+        hideFgCrosshair();
+        return;
+    }
+
+    const val = fgData[idx];
+    $('fgCrosshairH').style.cssText = `display:block;left:0;width:100%;top:${yPos - rect.top}px;`;
+    $('fgCrosshairV').style.cssText = `display:block;top:0;height:100%;left:${xPos - rect.left}px;`;
+    $('fgCrosshairLabel').style.cssText = `display:block;left:${xPos - rect.left + 8}px;top:${yPos - rect.top - 10}px;`;
+    $('fgCrosshairLabel').textContent = val;
+}
+
+function hideFgCrosshair() {
+    $('fgCrosshairH').style.display = 'none';
+    $('fgCrosshairV').style.display = 'none';
+    $('fgCrosshairLabel').style.display = 'none';
+}
+
 async function loadFearGreed(limit) {
     try {
         const data = await fetchWithRetry(`https://api.alternative.me/fng/?limit=${limit}`);
@@ -218,28 +274,56 @@ async function loadFearGreed(limit) {
         else if (val <= 50) st.classList.add('yellow');
         else st.classList.add('green');
 
-        // График
+        // Данные для графика
         const labels = items.map(item => {
             const d = new Date(item.timestamp * 1000);
             return d.toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit' });
         }).reverse();
-        const values = items.map(item => parseInt(item.value)).reverse();
+        fgData = items.map(item => parseInt(item.value)).reverse();
 
         const ctx = $('fgChart').getContext('2d');
         if (fgChart) fgChart.destroy();
 
-        const grad = ctx.createLinearGradient(0, 0, 0, 180);
-        grad.addColorStop(0, 'rgba(255,193,7,0.3)');
-        grad.addColorStop(1, 'rgba(255,193,7,0.0)');
+        // Фон с зонами (красный, желтый, зеленый)
+        const gradient = ctx.createLinearGradient(0, 0, 0, 180);
+        gradient.addColorStop(0, 'rgba(255,193,7,0.25)');
+        gradient.addColorStop(1, 'rgba(255,193,7,0.0)');
+
+        // Фоновые зоны рисуем через плагин
+        const zonePlugin = {
+            id: 'zones',
+            beforeDraw: function(chart) {
+                const ctx2 = chart.ctx;
+                const yScale2 = chart.scales.y;
+                const xScale2 = chart.scales.x;
+                const chartArea = chart.chartArea;
+
+                // Зеленый (50-100)
+                const greenTop = yScale2.getPixelForValue(100);
+                const greenBottom = yScale2.getPixelForValue(50);
+                ctx2.fillStyle = 'rgba(76,175,80,0.08)';
+                ctx2.fillRect(chartArea.left, greenBottom, chartArea.right - chartArea.left, greenTop - greenBottom);
+
+                // Желтый (25-50)
+                const yellowBottom = yScale2.getPixelForValue(25);
+                ctx2.fillStyle = 'rgba(255,193,7,0.08)';
+                ctx2.fillRect(chartArea.left, yellowBottom, chartArea.right - chartArea.left, greenBottom - yellowBottom);
+
+                // Красный (0-25)
+                const redBottom = yScale2.getPixelForValue(0);
+                ctx2.fillStyle = 'rgba(244,67,54,0.08)';
+                ctx2.fillRect(chartArea.left, redBottom, chartArea.right - chartArea.left, yellowBottom - redBottom);
+            }
+        };
 
         fgChart = new Chart(ctx, {
             type:'line',
             data: {
                 labels: labels,
                 datasets: [{
-                    data: values,
+                    data: fgData,
                     borderColor: '#ffc107',
-                    backgroundColor: grad,
+                    backgroundColor: gradient,
                     fill: true,
                     tension: 0.3,
                     pointRadius: 0,
@@ -249,7 +333,10 @@ async function loadFearGreed(limit) {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: {
+                    legend: { display: false },
+                    zones: {}
+                },
                 scales: {
                     x: {
                         grid: { color: 'rgba(255,255,255,0.05)' },
@@ -259,11 +346,29 @@ async function loadFearGreed(limit) {
                         min: 0,
                         max: 100,
                         grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 }, stepSize: 50 }
+                        ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 }, stepSize: 25 }
                     }
                 }
-            }
+            },
+            plugins: [zonePlugin]
         });
+
+        // Обработчики для перекрестия на графике страха и жадности
+        const canvas = $('fgChart');
+        const wrap = $('fgChartWrap');
+
+        const handleFgMove = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            updateFgCrosshair(clientX, clientY);
+        };
+
+        canvas.onmousemove = handleFgMove;
+        canvas.onmouseleave = hideFgCrosshair;
+        canvas.ontouchstart = (e) => { e.preventDefault(); handleFgMove(e); };
+        canvas.ontouchmove = (e) => { e.preventDefault(); handleFgMove(e); };
+        canvas.ontouchend = hideFgCrosshair;
 
     } catch(e) {
         $('fgValue').textContent = '--';
@@ -440,3 +545,4 @@ setInterval(loadCoins, 60000);
 </script>
 </body>
 </html>
+```
