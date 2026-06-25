@@ -19,7 +19,7 @@
             content:''; position:fixed; top:0; left:0; width:100%; height:100%;
             background:rgba(0,0,0,0.65); z-index:0;
         }
-        .app { position:relative; z-index:1; width:100%; max-width:420px; height:100vh; display:flex; flex-direction:column; }
+        .app { position:relative; z-index:1; width:100%; max-width:480px; height:100vh; display:flex; flex-direction:column; }
         .top-btn {
             display:block; width:calc(100% - 32px); margin:20px 16px 0; padding:20px 0;
             background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15); border-radius:16px;
@@ -31,13 +31,13 @@
         #mainPage { display:flex; flex-direction:column; height:100%; }
         .coins-list { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:4px; padding-bottom:10px; }
         .coin-item {
-            display:flex; align-items:center; padding:8px 10px; background:rgba(255,255,255,0.05);
+            display:flex; align-items:center; padding:10px 14px; background:rgba(255,255,255,0.05);
             backdrop-filter:blur(4px); border-radius:12px; border:1px solid rgba(255,255,255,0.06);
-            cursor:pointer; gap:6px; transition:0.2s;
+            cursor:pointer; gap:8px; transition:0.2s;
         }
         .coin-item:active { transform:scale(0.98); background:rgba(255,255,255,0.1); }
-        .coin-number { color:rgba(255,255,255,0.25); font-size:10px; font-weight:bold; width:16px; flex-shrink:0; }
-        .coin-icon { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; color:#fff; flex-shrink:0; }
+        .coin-number { color:rgba(255,255,255,0.25); font-size:11px; font-weight:bold; width:18px; flex-shrink:0; }
+        .coin-icon { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:bold; color:#fff; flex-shrink:0; }
         .coin-icon.btc { background:#f7931a; }
         .coin-icon.eth { background:#627eea; }
         .coin-icon.bnb { background:#f0b90b; }
@@ -46,10 +46,10 @@
         .coin-icon.trx { background:#ef0027; }
         .coin-icon.hype { background:#8b5cf6; }
         .coin-info { flex:1; min-width:0; }
-        .coin-name { color:#fff; font-size:13px; font-weight:600; }
-        .coin-symbol { color:rgba(255,255,255,0.35); font-size:9px; text-transform:uppercase; }
-        .coin-price { color:#fff; font-size:12px; font-weight:600; white-space:nowrap; min-width:55px; text-align:right; }
-        .coin-change-24h { font-size:11px; font-weight:600; min-width:45px; text-align:right; }
+        .coin-name { color:#fff; font-size:14px; font-weight:600; }
+        .coin-symbol { color:rgba(255,255,255,0.35); font-size:10px; text-transform:uppercase; }
+        .coin-price { color:#fff; font-size:14px; font-weight:600; white-space:nowrap; min-width:65px; text-align:right; }
+        .coin-change-24h { font-size:12px; font-weight:600; min-width:50px; text-align:right; }
         .coin-change-24h.green { color:#4caf50; }
         .coin-change-24h.red { color:#f44336; }
         .loading { color:rgba(255,255,255,0.5); text-align:center; padding:30px 0; font-size:14px; }
@@ -202,7 +202,6 @@ async function fetchWithRetry(url, retries=3) {
     }
 }
 
-// Кнопки таймфреймов для графика страха и жадности
 document.querySelectorAll('.fg-timeframes button').forEach(btn => {
     btn.onclick = function() {
         document.querySelectorAll('.fg-timeframes button').forEach(b => b.classList.remove('active'));
@@ -274,7 +273,6 @@ async function loadFearGreed(limit) {
         else if (val <= 50) st.classList.add('yellow');
         else st.classList.add('green');
 
-        // Данные для графика
         const labels = items.map(item => {
             const d = new Date(item.timestamp * 1000);
             return d.toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit' });
@@ -284,12 +282,10 @@ async function loadFearGreed(limit) {
         const ctx = $('fgChart').getContext('2d');
         if (fgChart) fgChart.destroy();
 
-        // Фон с зонами (красный, желтый, зеленый)
         const gradient = ctx.createLinearGradient(0, 0, 0, 180);
         gradient.addColorStop(0, 'rgba(255,193,7,0.25)');
         gradient.addColorStop(1, 'rgba(255,193,7,0.0)');
 
-        // Фоновые зоны рисуем через плагин
         const zonePlugin = {
             id: 'zones',
             beforeDraw: function(chart) {
@@ -298,18 +294,15 @@ async function loadFearGreed(limit) {
                 const xScale2 = chart.scales.x;
                 const chartArea = chart.chartArea;
 
-                // Зеленый (50-100)
                 const greenTop = yScale2.getPixelForValue(100);
                 const greenBottom = yScale2.getPixelForValue(50);
                 ctx2.fillStyle = 'rgba(76,175,80,0.08)';
                 ctx2.fillRect(chartArea.left, greenBottom, chartArea.right - chartArea.left, greenTop - greenBottom);
 
-                // Желтый (25-50)
                 const yellowBottom = yScale2.getPixelForValue(25);
                 ctx2.fillStyle = 'rgba(255,193,7,0.08)';
                 ctx2.fillRect(chartArea.left, yellowBottom, chartArea.right - chartArea.left, greenBottom - yellowBottom);
 
-                // Красный (0-25)
                 const redBottom = yScale2.getPixelForValue(0);
                 ctx2.fillStyle = 'rgba(244,67,54,0.08)';
                 ctx2.fillRect(chartArea.left, redBottom, chartArea.right - chartArea.left, yellowBottom - redBottom);
@@ -333,10 +326,7 @@ async function loadFearGreed(limit) {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    zones: {}
-                },
+                plugins: { legend: { display: false }, zones: {} },
                 scales: {
                     x: {
                         grid: { color: 'rgba(255,255,255,0.05)' },
@@ -353,7 +343,6 @@ async function loadFearGreed(limit) {
             plugins: [zonePlugin]
         });
 
-        // Обработчики для перекрестия на графике страха и жадности
         const canvas = $('fgChart');
         const wrap = $('fgChartWrap');
 
@@ -409,15 +398,25 @@ function updateCrosshair(x, y) {
     const canvas = $('priceChart'), canvasRect = canvas.getBoundingClientRect();
     if (!chart) return;
     const xScale = chart.scales.x, yScale = chart.scales.y;
-    const canvasX = x - canvasRect.left, canvasY = y - canvasRect.top;
+    const chartArea = chart.chartArea;
+    const canvasX = x - canvasRect.left;
+    const canvasY = y - canvasRect.top;
+
     let idx = 0, dist = Infinity;
     for (let i=0; i<window._vals.length; i++) {
-        const d = Math.abs(xScale.getPixelForValue(i) - canvasX);
+        const px = xScale.getPixelForValue(i);
+        const d = Math.abs(px - canvasX);
         if (d < dist) { dist = d; idx = i; }
     }
-    const xPos = xScale.getPixelForValue(idx), yPos = yScale.getPixelForValue(window._vals[idx]);
-    const area = chart.chartArea;
-    if (xPos < area.left || xPos > area.right || yPos < area.top || yPos > area.bottom) { hideCrosshair(); return; }
+
+    const xPos = xScale.getPixelForValue(idx);
+    const yPos = yScale.getPixelForValue(window._vals[idx]);
+
+    if (xPos < chartArea.left || xPos > chartArea.right || yPos < chartArea.top || yPos > chartArea.bottom) {
+        hideCrosshair();
+        return;
+    }
+
     const price = window._vals[idx];
     $('crosshairH').style.cssText = `display:block;left:0;width:100%;top:${yPos}px;`;
     $('crosshairV').style.cssText = `display:block;top:0;height:100%;left:${xPos}px;`;
