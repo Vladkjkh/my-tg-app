@@ -65,7 +65,7 @@
         #indicatorsPage .back-btn:active { transform:scale(0.95); opacity:0.7; }
 
         .fear-greed-box {
-            width:100%; margin:50px auto 0; padding:16px 20px 20px;
+            width:100%; margin:50px auto 0; padding:16px 16px 20px;
             background:rgba(255,255,255,0.05); border-radius:16px;
             border:1px solid rgba(255,255,255,0.08);
             backdrop-filter:blur(10px); text-align:center;
@@ -76,8 +76,15 @@
         .fear-greed-box .status.green { color:#4caf50; background:rgba(76,175,80,0.15); }
         .fear-greed-box .status.yellow { color:#ffc107; background:rgba(255,193,7,0.15); }
         .fear-greed-box .status.red { color:#f44336; background:rgba(244,67,54,0.15); }
-        .fear-greed-box .chart-container { height:80px; margin-top:12px; position:relative; }
-        .fear-greed-box .chart-container canvas { width:100% !important; height:100% !important; }
+        .fear-greed-box .chart-wrap { height:180px; margin-top:10px; position:relative; }
+        .fear-greed-box .chart-wrap canvas { width:100% !important; height:100% !important; }
+        .fear-greed-box .fg-timeframes { display:flex; gap:4px; justify-content:center; margin-top:8px; flex-wrap:wrap; }
+        .fear-greed-box .fg-timeframes button {
+            background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); border-radius:12px;
+            color:rgba(255,255,255,0.4); font-size:9px; font-weight:600; padding:3px 10px; cursor:pointer; transition:0.2s;
+        }
+        .fear-greed-box .fg-timeframes button.active { background:rgba(255,255,255,0.12); color:#fff; border-color:rgba(255,255,255,0.2); }
+        .fear-greed-box .fg-timeframes button:active { transform:scale(0.95); }
         .fear-greed-box .sub { color:rgba(255,255,255,0.2); font-size:9px; margin-top:6px; letter-spacing:0.3px; }
 
         #chartPage {
@@ -128,7 +135,14 @@
         <div class="label">Индекс страха и жадности</div>
         <div class="value" id="fgValue">--</div>
         <div class="status" id="fgStatus">Загрузка...</div>
-        <div class="chart-container"><canvas id="fgChart"></canvas></div>
+        <div class="chart-wrap"><canvas id="fgChart"></canvas></div>
+        <div class="fg-timeframes">
+            <button class="active" data-fg-days="30">1м</button>
+            <button data-fg-days="90">3м</button>
+            <button data-fg-days="180">6м</button>
+            <button data-fg-days="365">1г</button>
+            <button data-fg-days="max">Всё время</button>
+        </div>
         <div class="sub">Данные: alternative.me</div>
     </div>
 </div>
@@ -161,11 +175,12 @@ const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
 
 const $ = id => document.getElementById(id);
 
-$('mainBtn').onclick = () => { $('appContainer').style.display = 'none'; $('indicatorsPage').style.display = 'flex'; loadFearGreed(); };
+$('mainBtn').onclick = () => { $('appContainer').style.display = 'none'; $('indicatorsPage').style.display = 'flex'; loadFearGreed(30); };
 $('backFromIndicators').onclick = () => { $('indicatorsPage').style.display = 'none'; $('appContainer').style.display = 'flex'; };
 
 let chart = null, currentCoinId = 'bitcoin', currentDays = 1, updateInterval = null, currentPrice = 0, isTouching = false;
 let fgChart = null;
+let fgDays = 30;
 
 const coinMap = { 'bitcoin':'Bitcoin', 'ethereum':'Ethereum', 'binancecoin':'BNB', 'ripple':'XRP', 'solana':'Solana', 'tron':'TRX', 'hyperliquid':'Hype' };
 
@@ -176,9 +191,20 @@ async function fetchWithRetry(url, retries=3) {
     }
 }
 
-async function loadFearGreed() {
+// Кнопки таймфреймов для графика страха и жадности
+document.querySelectorAll('.fg-timeframes button').forEach(btn => {
+    btn.onclick = function() {
+        document.querySelectorAll('.fg-timeframes button').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        const days = this.dataset.fgDays;
+        fgDays = days === 'max' ? 365 : parseInt(days);
+        loadFearGreed(fgDays);
+    };
+});
+
+async function loadFearGreed(limit) {
     try {
-        const data = await fetchWithRetry('https://api.alternative.me/fng/?limit=30');
+        const data = await fetchWithRetry(`https://api.alternative.me/fng/?limit=${limit}`);
         const items = data.data || [];
         if (items.length === 0) throw new Error('Нет данных');
 
@@ -202,7 +228,7 @@ async function loadFearGreed() {
         const ctx = $('fgChart').getContext('2d');
         if (fgChart) fgChart.destroy();
 
-        const grad = ctx.createLinearGradient(0, 0, 0, 80);
+        const grad = ctx.createLinearGradient(0, 0, 0, 180);
         grad.addColorStop(0, 'rgba(255,193,7,0.3)');
         grad.addColorStop(1, 'rgba(255,193,7,0.0)');
 
@@ -227,13 +253,13 @@ async function loadFearGreed() {
                 scales: {
                     x: {
                         grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: { color: 'rgba(255,255,255,0.3)', maxTicksLimit: 8, font: { size: 8 } }
+                        ticks: { color: 'rgba(255,255,255,0.3)', maxTicksLimit: 10, font: { size: 9 } }
                     },
                     y: {
                         min: 0,
                         max: 100,
                         grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 8 }, stepSize: 50 }
+                        ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 }, stepSize: 50 }
                     }
                 }
             }
