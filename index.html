@@ -19,7 +19,7 @@
             content:''; position:fixed; top:0; left:0; width:100%; height:100%;
             background:rgba(0,0,0,0.65); z-index:0;
         }
-        .app { position:relative; z-index:1; width:100%; max-width:480px; height:100vh; display:flex; flex-direction:column; }
+        .app { position:relative; z-index:1; width:100%; max-width:100%; height:100vh; display:flex; flex-direction:column; }
         .top-btn {
             display:block; width:calc(100% - 32px); margin:20px 16px 0; padding:20px 0;
             background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15); border-radius:16px;
@@ -31,13 +31,13 @@
         #mainPage { display:flex; flex-direction:column; height:100%; }
         .coins-list { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:4px; padding-bottom:10px; }
         .coin-item {
-            display:flex; align-items:center; padding:10px 14px; background:rgba(255,255,255,0.05);
+            display:flex; align-items:center; padding:10px 16px; background:rgba(255,255,255,0.05);
             backdrop-filter:blur(4px); border-radius:12px; border:1px solid rgba(255,255,255,0.06);
-            cursor:pointer; gap:8px; transition:0.2s;
+            cursor:pointer; gap:10px; transition:0.2s;
         }
         .coin-item:active { transform:scale(0.98); background:rgba(255,255,255,0.1); }
-        .coin-number { color:rgba(255,255,255,0.25); font-size:11px; font-weight:bold; width:18px; flex-shrink:0; }
-        .coin-icon { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:bold; color:#fff; flex-shrink:0; }
+        .coin-number { color:rgba(255,255,255,0.25); font-size:12px; font-weight:bold; width:20px; flex-shrink:0; }
+        .coin-icon { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:bold; color:#fff; flex-shrink:0; }
         .coin-icon.btc { background:#f7931a; }
         .coin-icon.eth { background:#627eea; }
         .coin-icon.bnb { background:#f0b90b; }
@@ -46,10 +46,10 @@
         .coin-icon.trx { background:#ef0027; }
         .coin-icon.hype { background:#8b5cf6; }
         .coin-info { flex:1; min-width:0; }
-        .coin-name { color:#fff; font-size:14px; font-weight:600; }
+        .coin-name { color:#fff; font-size:15px; font-weight:600; }
         .coin-symbol { color:rgba(255,255,255,0.35); font-size:10px; text-transform:uppercase; }
-        .coin-price { color:#fff; font-size:14px; font-weight:600; white-space:nowrap; min-width:65px; text-align:right; }
-        .coin-change-24h { font-size:12px; font-weight:600; min-width:50px; text-align:right; }
+        .coin-price { color:#fff; font-size:15px; font-weight:600; white-space:nowrap; min-width:70px; text-align:right; }
+        .coin-change-24h { font-size:13px; font-weight:600; min-width:55px; text-align:right; }
         .coin-change-24h.green { color:#4caf50; }
         .coin-change-24h.red { color:#f44336; }
         .loading { color:rgba(255,255,255,0.5); text-align:center; padding:30px 0; font-size:14px; }
@@ -64,33 +64,6 @@
             padding:6px 14px; border-radius:20px; cursor:pointer;
         }
         #indicatorsPage .back-btn:active { transform:scale(0.95); opacity:0.7; }
-
-        .fear-greed-box {
-            width:100%; margin:50px auto 0; padding:16px 16px 20px;
-            background:rgba(255,255,255,0.05); border-radius:16px;
-            border:1px solid rgba(255,255,255,0.08);
-            backdrop-filter:blur(10px); text-align:center;
-        }
-        .fear-greed-box .label { color:rgba(255,255,255,0.4); font-size:10px; text-transform:uppercase; letter-spacing:0.5px; }
-        .fear-greed-box .value { color:#fff; font-size:48px; font-weight:bold; margin:4px 0; }
-        .fear-greed-box .status { font-size:16px; font-weight:600; padding:3px 14px; border-radius:20px; display:inline-block; }
-        .fear-greed-box .status.green { color:#4caf50; background:rgba(76,175,80,0.15); }
-        .fear-greed-box .status.yellow { color:#ffc107; background:rgba(255,193,7,0.15); }
-        .fear-greed-box .status.red { color:#f44336; background:rgba(244,67,54,0.15); }
-        .fear-greed-box .chart-wrap { height:180px; margin-top:10px; position:relative; }
-        .fear-greed-box .chart-wrap canvas { width:100% !important; height:100% !important; }
-        .fear-greed-box .fg-timeframes { display:flex; gap:4px; justify-content:center; margin-top:8px; flex-wrap:wrap; }
-        .fear-greed-box .fg-timeframes button {
-            background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); border-radius:12px;
-            color:rgba(255,255,255,0.4); font-size:9px; font-weight:600; padding:3px 10px; cursor:pointer; transition:0.2s;
-        }
-        .fear-greed-box .fg-timeframes button.active { background:rgba(255,255,255,0.12); color:#fff; border-color:rgba(255,255,255,0.2); }
-        .fear-greed-box .fg-timeframes button:active { transform:scale(0.95); }
-        .fear-greed-box .sub { color:rgba(255,255,255,0.2); font-size:9px; margin-top:6px; letter-spacing:0.3px; }
-
-        .fg-crosshair-line-h { pointer-events:none; position:absolute; border-top:1px dashed rgba(255,255,255,0.4); z-index:5; }
-        .fg-crosshair-line-v { pointer-events:none; position:absolute; border-left:1px dashed rgba(255,255,255,0.4); z-index:5; }
-        .fg-crosshair-label { pointer-events:none; position:absolute; color:#ffc107; font-size:10px; font-weight:bold; background:rgba(0,0,0,0.7); padding:2px 6px; border-radius:4px; z-index:6; }
 
         #chartPage {
             display:none; position:fixed; top:0; left:0; width:100%; height:100%;
@@ -136,25 +109,6 @@
 
 <div id="indicatorsPage">
     <button class="back-btn" id="backFromIndicators">←</button>
-    <div class="fear-greed-box">
-        <div class="label">Индекс страха и жадности</div>
-        <div class="value" id="fgValue">--</div>
-        <div class="status" id="fgStatus">Загрузка...</div>
-        <div class="chart-wrap" id="fgChartWrap">
-            <canvas id="fgChart"></canvas>
-            <div class="fg-crosshair-line-h" id="fgCrosshairH"></div>
-            <div class="fg-crosshair-line-v" id="fgCrosshairV"></div>
-            <div class="fg-crosshair-label" id="fgCrosshairLabel">0</div>
-        </div>
-        <div class="fg-timeframes">
-            <button class="active" data-fg-days="30">1м</button>
-            <button data-fg-days="90">3м</button>
-            <button data-fg-days="180">6м</button>
-            <button data-fg-days="365">1г</button>
-            <button data-fg-days="max">Всё время</button>
-        </div>
-        <div class="sub">Данные: alternative.me</div>
-    </div>
 </div>
 
 <div id="chartPage">
@@ -185,13 +139,10 @@ const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
 
 const $ = id => document.getElementById(id);
 
-$('mainBtn').onclick = () => { $('appContainer').style.display = 'none'; $('indicatorsPage').style.display = 'flex'; loadFearGreed(30); };
+$('mainBtn').onclick = () => { $('appContainer').style.display = 'none'; $('indicatorsPage').style.display = 'flex'; };
 $('backFromIndicators').onclick = () => { $('indicatorsPage').style.display = 'none'; $('appContainer').style.display = 'flex'; };
 
 let chart = null, currentCoinId = 'bitcoin', currentDays = 1, updateInterval = null, currentPrice = 0, isTouching = false;
-let fgChart = null;
-let fgDays = 30;
-let fgData = [];
 
 const coinMap = { 'bitcoin':'Bitcoin', 'ethereum':'Ethereum', 'binancecoin':'BNB', 'ripple':'XRP', 'solana':'Solana', 'tron':'TRX', 'hyperliquid':'Hype' };
 
@@ -199,172 +150,6 @@ async function fetchWithRetry(url, retries=3) {
     for (let i=0; i<retries; i++) {
         try { const r = await fetch(url); if (r.ok) return await r.json(); }
         catch(e) { if (i===retries-1) throw e; await new Promise(r => setTimeout(r, 1000*(i+1))); }
-    }
-}
-
-document.querySelectorAll('.fg-timeframes button').forEach(btn => {
-    btn.onclick = function() {
-        document.querySelectorAll('.fg-timeframes button').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        const days = this.dataset.fgDays;
-        fgDays = days === 'max' ? 365 : parseInt(days);
-        loadFearGreed(fgDays);
-    };
-});
-
-function updateFgCrosshair(x, y) {
-    const wrap = $('fgChartWrap');
-    const canvas = $('fgChart');
-    const rect = wrap.getBoundingClientRect();
-    const canvasRect = canvas.getBoundingClientRect();
-
-    if (!fgChart || !fgData.length) {
-        hideFgCrosshair();
-        return;
-    }
-
-    const xScale = fgChart.scales.x;
-    const yScale = fgChart.scales.y;
-    const canvasX = x - canvasRect.left;
-    const canvasY = y - canvasRect.top;
-
-    let idx = 0, dist = Infinity;
-    for (let i=0; i<fgData.length; i++) {
-        const px = xScale.getPixelForValue(i);
-        const d = Math.abs(px - canvasX);
-        if (d < dist) { dist = d; idx = i; }
-    }
-
-    const xPos = xScale.getPixelForValue(idx);
-    const yPos = yScale.getPixelForValue(fgData[idx]);
-    const area = fgChart.chartArea;
-
-    if (xPos < area.left || xPos > area.right || yPos < area.top || yPos > area.bottom) {
-        hideFgCrosshair();
-        return;
-    }
-
-    const val = fgData[idx];
-    const topOffset = rect.top;
-    const leftOffset = rect.left;
-
-    $('fgCrosshairH').style.cssText = `display:block;left:0;width:100%;top:${yPos - topOffset}px;`;
-    $('fgCrosshairV').style.cssText = `display:block;top:0;height:100%;left:${xPos - leftOffset}px;`;
-    $('fgCrosshairLabel').style.cssText = `display:block;left:${xPos - leftOffset + 8}px;top:${yPos - topOffset - 10}px;`;
-    $('fgCrosshairLabel').textContent = val;
-}
-
-function hideFgCrosshair() {
-    $('fgCrosshairH').style.display = 'none';
-    $('fgCrosshairV').style.display = 'none';
-    $('fgCrosshairLabel').style.display = 'none';
-}
-
-async function loadFearGreed(limit) {
-    try {
-        const data = await fetchWithRetry(`https://api.alternative.me/fng/?limit=${limit}`);
-        const items = data.data || [];
-        if (items.length === 0) throw new Error('Нет данных');
-
-        const val = parseInt(items[0].value);
-        const cls = items[0].value_classification;
-        $('fgValue').textContent = val;
-        $('fgStatus').textContent = cls;
-        const st = $('fgStatus');
-        st.className = 'status';
-        if (val <= 25) st.classList.add('red');
-        else if (val <= 50) st.classList.add('yellow');
-        else st.classList.add('green');
-
-        const labels = items.map(item => {
-            const d = new Date(item.timestamp * 1000);
-            return d.toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit' });
-        }).reverse();
-        fgData = items.map(item => parseInt(item.value)).reverse();
-
-        const ctx = $('fgChart').getContext('2d');
-        if (fgChart) fgChart.destroy();
-
-        const gradient = ctx.createLinearGradient(0, 0, 0, 180);
-        gradient.addColorStop(0, 'rgba(255,193,7,0.25)');
-        gradient.addColorStop(1, 'rgba(255,193,7,0.0)');
-
-        const zonePlugin = {
-            id: 'zones',
-            beforeDraw: function(chart) {
-                const ctx2 = chart.ctx;
-                const yScale2 = chart.scales.y;
-                const xScale2 = chart.scales.x;
-                const chartArea = chart.chartArea;
-
-                const greenTop = yScale2.getPixelForValue(100);
-                const greenBottom = yScale2.getPixelForValue(50);
-                ctx2.fillStyle = 'rgba(76,175,80,0.08)';
-                ctx2.fillRect(chartArea.left, greenBottom, chartArea.right - chartArea.left, greenTop - greenBottom);
-
-                const yellowBottom = yScale2.getPixelForValue(25);
-                ctx2.fillStyle = 'rgba(255,193,7,0.08)';
-                ctx2.fillRect(chartArea.left, yellowBottom, chartArea.right - chartArea.left, greenBottom - yellowBottom);
-
-                const redBottom = yScale2.getPixelForValue(0);
-                ctx2.fillStyle = 'rgba(244,67,54,0.08)';
-                ctx2.fillRect(chartArea.left, redBottom, chartArea.right - chartArea.left, yellowBottom - redBottom);
-            }
-        };
-
-        fgChart = new Chart(ctx, {
-            type:'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: fgData,
-                    borderColor: '#ffc107',
-                    backgroundColor: gradient,
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 0,
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false }, zones: {} },
-                scales: {
-                    x: {
-                        grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: { color: 'rgba(255,255,255,0.3)', maxTicksLimit: 10, font: { size: 9 } }
-                    },
-                    y: {
-                        min: 0,
-                        max: 100,
-                        grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 }, stepSize: 25 }
-                    }
-                }
-            },
-            plugins: [zonePlugin]
-        });
-
-        const canvas = $('fgChart');
-        const wrap = $('fgChartWrap');
-
-        const handleFgMove = (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            updateFgCrosshair(clientX, clientY);
-        };
-
-        canvas.onmousemove = handleFgMove;
-        canvas.onmouseleave = hideFgCrosshair;
-        canvas.ontouchstart = (e) => { e.preventDefault(); handleFgMove(e); };
-        canvas.ontouchmove = (e) => { e.preventDefault(); handleFgMove(e); };
-        canvas.ontouchend = hideFgCrosshair;
-
-    } catch(e) {
-        $('fgValue').textContent = '--';
-        $('fgStatus').textContent = 'Ошибка';
     }
 }
 
