@@ -127,31 +127,6 @@
         .indicator-stat-value.positive { color: #4caf50; }
         .indicator-stat-value.negative { color: #f44336; }
 
-        .coin-tabs {
-            display: flex;
-            gap: 6px;
-            margin-bottom: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        .coin-tab {
-            padding: 4px 12px;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.1);
-            background: rgba(255,255,255,0.05);
-            color: rgba(255,255,255,0.5);
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .coin-tab.active {
-            background: rgba(255, 193, 7, 0.15);
-            border-color: #ffc107;
-            color: #ffc107;
-        }
-        .coin-tab:active { transform: scale(0.95); }
-
         #chartPage {
             display:none; position:fixed; top:0; left:0; width:100%; height:100%;
             background:#0a0e27; z-index:999; flex-direction:column; padding:12px;
@@ -330,12 +305,29 @@
 </div>
 
 <script>
-const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
+const tg = window.Telegram.WebApp; 
+tg.ready(); 
+tg.expand();
 
 const $ = id => document.getElementById(id);
 
-$('mainBtn').onclick = () => { $('appContainer').style.display = 'none'; $('indicatorsPage').style.display = 'flex'; };
-$('backFromIndicators').onclick = () => { $('indicatorsPage').style.display = 'none'; $('appContainer').style.display = 'flex'; };
+// Обработчики кнопок
+$('mainBtn').onclick = function() { 
+    $('appContainer').style.display = 'none'; 
+    $('indicatorsPage').style.display = 'flex'; 
+    setTimeout(initAllETFs, 100);
+};
+
+$('backFromIndicators').onclick = function() { 
+    $('indicatorsPage').style.display = 'none'; 
+    $('appContainer').style.display = 'flex'; 
+};
+
+$('backFromChart').onclick = function() {
+    if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
+    $('chartPage').style.display = 'none';
+    $('appContainer').style.display = 'flex';
+};
 
 let chart = null, currentCoinId = 'bitcoin', currentDays = 1, updateInterval = null, currentPrice = 0, isTouching = false;
 const etfCharts = {};
@@ -347,25 +339,26 @@ function generateETFData(days = 30) {
     const data = [];
     let value = 0;
     for (let i = 0; i < days; i++) {
-        // Случайное изменение от -30 до +30
         const change = (Math.random() - 0.5) * 60;
         value = Math.max(-80, Math.min(80, value + change));
-        data.push(value);
+        data.push(Math.round(value * 10) / 10);
     }
     return data;
 }
 
 // Создание графика ETF
-function drawETFChart(containerId, data, color, statsId) {
-    const ctx = document.getElementById(containerId).getContext('2d');
+function drawETFChart(containerId, data, statsId) {
+    const ctx = document.getElementById(containerId);
+    if (!ctx) return;
+    
+    const context = ctx.getContext('2d');
     
     if (etfCharts[containerId]) {
         etfCharts[containerId].destroy();
+        delete etfCharts[containerId];
     }
     
     const labels = data.map((_, i) => `${i+1}д`);
-    const positive = data.filter(v => v > 0);
-    const negative = data.filter(v => v < 0);
     const total = data.reduce((a, b) => a + b, 0);
     const avg = total / data.length;
     const max = Math.max(...data);
@@ -377,32 +370,32 @@ function drawETFChart(containerId, data, color, statsId) {
     const maxEl = document.getElementById(statsId + 'Max');
     const minEl = document.getElementById(statsId + 'Min');
     
-    totalEl.textContent = (total >= 0 ? '+' : '') + total.toFixed(1) + 'M';
-    totalEl.className = 'indicator-stat-value ' + (total >= 0 ? 'positive' : 'negative');
+    if (totalEl) {
+        totalEl.textContent = (total >= 0 ? '+' : '') + total.toFixed(1) + 'M';
+        totalEl.className = 'indicator-stat-value ' + (total >= 0 ? 'positive' : 'negative');
+    }
+    if (avgEl) avgEl.textContent = '$' + avg.toFixed(1) + 'M';
+    if (maxEl) {
+        maxEl.textContent = '+$' + max.toFixed(1) + 'M';
+        maxEl.className = 'indicator-stat-value positive';
+    }
+    if (minEl) {
+        minEl.textContent = '-$' + Math.abs(min).toFixed(1) + 'M';
+        minEl.className = 'indicator-stat-value negative';
+    }
     
-    avgEl.textContent = '$' + avg.toFixed(1) + 'M';
-    
-    maxEl.textContent = '+$' + max.toFixed(1) + 'M';
-    maxEl.className = 'indicator-stat-value positive';
-    
-    minEl.textContent = '-$' + Math.abs(min).toFixed(1) + 'M';
-    minEl.className = 'indicator-stat-value negative';
-    
-    const gradient = ctx.createLinearGradient(0, 0, 0, 80);
+    const gradient = context.createLinearGradient(0, 0, 0, 80);
     gradient.addColorStop(0, 'rgba(76, 175, 80, 0.3)');
     gradient.addColorStop(0.5, 'rgba(255, 193, 7, 0.1)');
     gradient.addColorStop(1, 'rgba(244, 67, 54, 0.3)');
     
-    // Определяем цвет для каждой точки
-    const colors = data.map(v => v >= 0 ? '#4caf50' : '#f44336');
-    
-    etfCharts[containerId] = new Chart(ctx, {
+    etfCharts[containerId] = new Chart(context, {
         type: 'line',
         data: {
             labels: labels,
             datasets: [{
                 data: data,
-                borderColor: color || '#ffc107',
+                borderColor: '#ffc107',
                 backgroundColor: gradient,
                 fill: true,
                 tension: 0.4,
@@ -460,49 +453,78 @@ function initAllETFs() {
     const solData = generateETFData(30);
     const xrpData = generateETFData(30);
     
-    drawETFChart('btcEtfChart', btcData, '#f7931a', 'btc');
-    drawETFChart('ethEtfChart', ethData, '#627eea', 'eth');
-    drawETFChart('solEtfChart', solData, '#9945ff', 'sol');
-    drawETFChart('xrpEtfChart', xrpData, '#00aae4', 'xrp');
+    drawETFChart('btcEtfChart', btcData, 'btc');
+    drawETFChart('ethEtfChart', ethData, 'eth');
+    drawETFChart('solEtfChart', solData, 'sol');
+    drawETFChart('xrpEtfChart', xrpData, 'xrp');
 }
-
-// Запускаем при открытии страницы индикаторов
-document.getElementById('mainBtn').addEventListener('click', function() {
-    document.getElementById('appContainer').style.display = 'none';
-    document.getElementById('indicatorsPage').style.display = 'flex';
-    setTimeout(initAllETFs, 100);
-});
 
 async function fetchWithRetry(url, retries=3) {
     for (let i=0; i<retries; i++) {
-        try { const r = await fetch(url); if (r.ok) return await r.json(); }
-        catch(e) { if (i===retries-1) throw e; await new Promise(r => setTimeout(r, 1000*(i+1))); }
+        try { 
+            const r = await fetch(url); 
+            if (r.ok) return await r.json(); 
+        }
+        catch(e) { 
+            if (i===retries-1) throw e; 
+            await new Promise(r => setTimeout(r, 1000*(i+1))); 
+        }
     }
 }
 
 async function fetchData(id, days) {
     try {
-        let d = days; if (d===365 || d===180) d = Math.min(d,365);
+        let d = days; 
+        if (d===365 || d===180) d = Math.min(d,365);
         const data = await fetchWithRetry(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${d}`);
         return data.prices || [];
-    } catch(e) { return []; }
+    } catch(e) { 
+        return []; 
+    }
 }
 
 function drawChart(ctx, prices) {
-    const labels = prices.map(p => { const d = new Date(p[0]); return currentDays>=180 ? d.toLocaleDateString('ru-RU',{month:'short',year:'numeric'}) : d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'}); });
+    const labels = prices.map(p => { 
+        const d = new Date(p[0]); 
+        return currentDays>=180 ? d.toLocaleDateString('ru-RU',{month:'short',year:'numeric'}) : d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'}); 
+    });
     const values = prices.map(p => p[1]);
-    window._vals = values; window._prices = prices;
+    window._vals = values; 
+    window._prices = prices;
     const grad = ctx.createLinearGradient(0,0,0,300);
-    grad.addColorStop(0,'rgba(255,193,7,0.3)'); grad.addColorStop(1,'rgba(255,193,7,0.0)');
+    grad.addColorStop(0,'rgba(255,193,7,0.3)'); 
+    grad.addColorStop(1,'rgba(255,193,7,0.0)');
     chart = new Chart(ctx, {
         type:'line',
-        data:{ labels, datasets:[{ data:values, borderColor:'#ffc107', backgroundColor:grad, fill:true, tension:0.4, pointRadius:0, pointHoverRadius:6, borderWidth:2 }] },
+        data:{ 
+            labels, 
+            datasets:[{ 
+                data:values, 
+                borderColor:'#ffc107', 
+                backgroundColor:grad, 
+                fill:true, 
+                tension:0.4, 
+                pointRadius:0, 
+                pointHoverRadius:6, 
+                borderWidth:2 
+            }] 
+        },
         options:{
-            responsive:true, maintainAspectRatio:false,
-            plugins:{ legend:{display:false}, tooltip:{ enabled:false } },
+            responsive:true, 
+            maintainAspectRatio:false,
+            plugins:{ 
+                legend:{display:false}, 
+                tooltip:{ enabled:false } 
+            },
             scales:{
-                x:{ grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'rgba(255,255,255,0.4)', maxTicksLimit:10, maxRotation:30, autoSkip:true} },
-                y:{ grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'rgba(255,255,255,0.4)', callback:v => '$'+v.toFixed(0)} }
+                x:{ 
+                    grid:{color:'rgba(255,255,255,0.05)'}, 
+                    ticks:{color:'rgba(255,255,255,0.4)', maxTicksLimit:10, maxRotation:30, autoSkip:true} 
+                },
+                y:{ 
+                    grid:{color:'rgba(255,255,255,0.05)'}, 
+                    ticks:{color:'rgba(255,255,255,0.4)', callback:v => '$'+v.toFixed(0)} 
+                }
             }
         }
     });
@@ -510,7 +532,9 @@ function drawChart(ctx, prices) {
 }
 
 function updateCrosshair(x, y) {
-    const canvas = $('priceChart'), canvasRect = canvas.getBoundingClientRect();
+    const canvas = $('priceChart');
+    if (!canvas) return;
+    const canvasRect = canvas.getBoundingClientRect();
     if (!chart) return;
     const xScale = chart.scales.x, yScale = chart.scales.y;
     const chartArea = chart.chartArea;
@@ -547,7 +571,10 @@ function updateCrosshair(x, y) {
 }
 
 function hideCrosshair() {
-    ['crosshairH','crosshairV','crosshairLabel'].forEach(id => $(id).style.display = 'none');
+    ['crosshairH','crosshairV','crosshairLabel'].forEach(id => {
+        const el = $(id);
+        if (el) el.style.display = 'none';
+    });
     if (isTouching) {
         $('chartPriceDisplay').textContent = '$'+currentPrice.toFixed(2);
         $('chartPriceDisplay').classList.remove('touch');
@@ -561,7 +588,10 @@ async function updateChart(id, days) {
     currentPrice = prices[prices.length-1][1];
     const prev = prices[0][1], chg = prev ? ((currentPrice-prev)/prev*100) : 0;
     const cls = chg>=0 ? 'green' : 'red';
-    if (!isTouching) { $('chartPriceDisplay').textContent = '$'+currentPrice.toFixed(2); $('chartPriceDisplay').classList.remove('touch'); }
+    if (!isTouching) { 
+        $('chartPriceDisplay').textContent = '$'+currentPrice.toFixed(2); 
+        $('chartPriceDisplay').classList.remove('touch'); 
+    }
     $('chartChangeDisplay').textContent = (chg>=0?'+':'')+chg.toFixed(2)+'%';
     $('chartChangeDisplay').className = 'chart-change-display '+cls;
     const ctx = $('priceChart').getContext('2d');
@@ -577,40 +607,45 @@ function openChart(id) {
     $('chartCoinTitle').textContent = coinMap[id] || id;
     document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
     document.querySelector('.timeframe-btn[data-days="1"]').classList.add('active');
-    currentDays = 1; isTouching = false;
+    currentDays = 1; 
+    isTouching = false;
     updateChart(id, currentDays);
     if (updateInterval) clearInterval(updateInterval);
     updateInterval = setInterval(() => updateChart(currentCoinId, currentDays), 60000);
 }
 
-$('backFromChart').onclick = () => {
-    if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
-    $('chartPage').style.display = 'none';
-    $('appContainer').style.display = 'flex';
-};
-
-document.querySelectorAll('.timeframe-btn').forEach(btn => btn.onclick = function() {
-    document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
-    this.classList.add('active');
-    currentDays = parseFloat(this.dataset.days);
-    isTouching = false;
-    updateChart(currentCoinId, currentDays);
+document.querySelectorAll('.timeframe-btn').forEach(btn => {
+    btn.onclick = function() {
+        document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        currentDays = parseFloat(this.dataset.days);
+        isTouching = false;
+        updateChart(currentCoinId, currentDays);
+    };
 });
 
+// События для графика
 ['mousemove','touchmove'].forEach(ev => {
-    $('priceChart').addEventListener(ev, function(e) {
-        e.preventDefault();
-        const c = ev === 'touchmove' ? e.touches[0] : e;
-        updateCrosshair(c.clientX, c.clientY);
-    }, { passive: false });
+    const chartEl = $('priceChart');
+    if (chartEl) {
+        chartEl.addEventListener(ev, function(e) {
+            e.preventDefault();
+            const c = ev === 'touchmove' ? e.touches[0] : e;
+            updateCrosshair(c.clientX, c.clientY);
+        }, { passive: false });
+    }
 });
-$('priceChart').addEventListener('mouseleave', hideCrosshair);
-$('priceChart').addEventListener('touchend', hideCrosshair);
-$('priceChart').addEventListener('touchstart', function(e) {
-    e.preventDefault();
-    const t = e.touches[0];
-    updateCrosshair(t.clientX, t.clientY);
-}, { passive: false });
+
+const chartEl = $('priceChart');
+if (chartEl) {
+    chartEl.addEventListener('mouseleave', hideCrosshair);
+    chartEl.addEventListener('touchend', hideCrosshair);
+    chartEl.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        const t = e.touches[0];
+        updateCrosshair(t.clientX, t.clientY);
+    }, { passive: false });
+}
 
 const coins = [
     { id:'bitcoin', name:'Bitcoin', symbol:'btc', icon:'₿' },
@@ -629,7 +664,8 @@ async function loadCoins() {
         if (cache) render(cache);
         const ids = coins.map(c=>c.id).join(',');
         const data = await fetchWithRetry(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
-        cache = data; render(data);
+        cache = data; 
+        render(data);
     } catch(e) {
         if (!cache) {
             $('coinsList').innerHTML = '<div class="loading">Ошибка. Повтор...</div>';
@@ -640,6 +676,7 @@ async function loadCoins() {
 
 function render(data) {
     const list = $('coinsList');
+    if (!list) return;
     list.innerHTML = '';
     coins.forEach((c, i) => {
         const info = data[c.id];
@@ -650,4 +687,8 @@ function render(data) {
         } else {
             const price = info.usd, chg = info.usd_24h_change || 0;
             const cls = chg>=0 ? 'green' : 'red';
-            const txt = (chg>=0?'+':'
+            const txt = (chg>=0?'+':'')+chg.toFixed(2)+'%';
+            item.innerHTML = `<span class="coin-number">${i+1}</span><div class="coin-icon ${c.symbol}">${c.icon}</div><div class="coin-info"><div class="coin-name">${c.name}</div><div class="coin-symbol">${c.symbol.toUpperCase()}</div></div><div class="coin-price">$${price.toFixed(2)}</div><div class="coin-change-24h ${cls}">${txt}</div>`;
+        }
+        item.onclick = () => openChart(c.id);
+        list.appendChild(item
