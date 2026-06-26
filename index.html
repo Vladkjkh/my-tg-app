@@ -67,25 +67,46 @@
         }
         #indicatorsPage .back-btn:active { transform:scale(0.95); opacity:0.7; }
 
-        /* Прямоугольник с цифрой 1 - ШИРОКИЙ */
+        /* Прямоугольник с индикатором ETF */
         .indicator-box {
             width: 100%;
             margin: 80px 0 0 0;
-            padding: 40px 0;
-            background: linear-gradient(135deg, #ffc107, #ff6b00);
-            border-radius: 0;
+            padding: 20px 15px 15px;
+            background: linear-gradient(135deg, #1a1a3e, #0a0e27);
+            border-radius: 16px;
             text-align: center;
-            box-shadow: 0 8px 32px rgba(255, 193, 7, 0.3);
-            border-top: 2px solid rgba(255, 255, 255, 0.2);
-            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 193, 7, 0.3);
+            box-shadow: 0 8px 32px rgba(255, 193, 7, 0.15);
         }
-        .indicator-number {
-            font-size: 100px;
-            font-weight: 900;
+        .indicator-title {
+            color: #ffc107;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .indicator-value {
             color: #fff;
-            text-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-            display: block;
-            line-height: 1;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .indicator-value.positive { color: #4caf50; }
+        .indicator-value.negative { color: #f44336; }
+        .indicator-sub {
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+            margin-bottom: 12px;
+        }
+        .indicator-chart-container {
+            width: 100%;
+            height: 120px;
+            position: relative;
+        }
+        .indicator-chart-container canvas {
+            width: 100% !important;
+            height: 100% !important;
         }
 
         #chartPage {
@@ -133,7 +154,12 @@
 <div id="indicatorsPage">
     <button class="back-btn" id="backFromIndicators">←</button>
     <div class="indicator-box">
-        <span class="indicator-number">1</span>
+        <div class="indicator-title">📊 Притоки / Оттоки ETF</div>
+        <div class="indicator-value positive" id="etfValue">+$124.5M</div>
+        <div class="indicator-sub">За последние 7 дней</div>
+        <div class="indicator-chart-container">
+            <canvas id="etfChart"></canvas>
+        </div>
     </div>
 </div>
 
@@ -169,8 +195,118 @@ $('mainBtn').onclick = () => { $('appContainer').style.display = 'none'; $('indi
 $('backFromIndicators').onclick = () => { $('indicatorsPage').style.display = 'none'; $('appContainer').style.display = 'flex'; };
 
 let chart = null, currentCoinId = 'bitcoin', currentDays = 1, updateInterval = null, currentPrice = 0, isTouching = false;
+let etfChartInstance = null;
 
 const coinMap = { 'bitcoin':'Bitcoin', 'ethereum':'Ethereum', 'binancecoin':'BNB', 'ripple':'XRP', 'solana':'Solana', 'tron':'TRX', 'hyperliquid':'Hype' };
+
+// Генерация случайных данных для ETF (симуляция)
+function generateETFData() {
+    const days = 30;
+    const data = [];
+    let value = 50;
+    for (let i = 0; i < days; i++) {
+        const change = (Math.random() - 0.5) * 40;
+        value = Math.max(10, Math.min(90, value + change));
+        data.push(value);
+    }
+    return data;
+}
+
+// Создание графика ETF
+function drawETFChart() {
+    const ctx = document.getElementById('etfChart').getContext('2d');
+    const data = generateETFData();
+    const labels = data.map((_, i) => `${i+1}д`);
+    
+    // Расчет общего притока/оттока
+    const total = data.reduce((a, b) => a + b, 0);
+    const avg = total / data.length;
+    const last = data[data.length - 1];
+    const change = ((last - data[0]) / data[0] * 100);
+    
+    const valueEl = document.getElementById('etfValue');
+    if (change > 0) {
+        valueEl.className = 'indicator-value positive';
+        valueEl.textContent = `+$${Math.abs(change).toFixed(1)}M`;
+    } else {
+        valueEl.className = 'indicator-value negative';
+        valueEl.textContent = `-$${Math.abs(change).toFixed(1)}M`;
+    }
+    
+    if (etfChartInstance) etfChartInstance.destroy();
+    
+    const gradient = ctx.createLinearGradient(0, 0, 0, 120);
+    gradient.addColorStop(0, 'rgba(76, 175, 80, 0.4)');
+    gradient.addColorStop(0.5, 'rgba(255, 193, 7, 0.2)');
+    gradient.addColorStop(1, 'rgba(244, 67, 54, 0.1)');
+    
+    etfChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                borderColor: function(context) {
+                    const chart = context.chart;
+                    const {ctx, chartArea} = chart;
+                    if (!chartArea) return '#ffc107';
+                    
+                    const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                    gradient.addColorStop(0, '#4caf50');
+                    gradient.addColorStop(0.5, '#ffc107');
+                    gradient.addColorStop(1, '#f44336');
+                    return gradient;
+                },
+                backgroundColor: gradient,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    enabled: true,
+                    callbacks: {
+                        label: function(context) {
+                            return `$${context.parsed.y.toFixed(1)}M`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: 'rgba(255,255,255,0.3)', maxTicksLimit: 8, font: { size: 8 } }
+                },
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { 
+                        color: 'rgba(255,255,255,0.3)', 
+                        callback: function(value) { return '$' + value + 'M'; },
+                        font: { size: 8 }
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+}
+
+// Инициализация ETF графика при открытии страницы
+document.getElementById('mainBtn').addEventListener('click', function() {
+    document.getElementById('appContainer').style.display = 'none';
+    document.getElementById('indicatorsPage').style.display = 'flex';
+    setTimeout(drawETFChart, 100);
+});
 
 async function fetchWithRetry(url, retries=3) {
     for (let i=0; i<retries; i++) {
@@ -359,6 +495,9 @@ function render(data) {
 
 loadCoins();
 setInterval(loadCoins, 60000);
+
+// Обновление ETF графика каждые 30 секунд
+setInterval(drawETFChart, 30000);
 </script>
 </body>
 </html>
