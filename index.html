@@ -683,6 +683,7 @@ function render(data) {
         const item = document.createElement('div');
         item.className = 'coin-item';
         if (!info) {
+        
             item.innerHTML = `<span class="coin-number">${i+1}</span><div class="coin-icon ${c.symbol}">${c.icon}</div><div class="coin-info"><div class="coin-name">${c.name}</div><div class="coin-symbol">${c.symbol.toUpperCase()}</div></div><div class="coin-price">--</div><div class="coin-change-24h" style="color:rgba(255,255,255,0.3);">--</div>`;
         } else {
             const price = info.usd, chg = info.usd_24h_change || 0;
