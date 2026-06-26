@@ -67,16 +67,16 @@
         }
         #indicatorsPage .back-btn:active { transform:scale(0.95); opacity:0.7; }
 
-        /* Прямоугольник с индикатором ETF */
         .indicator-box {
             width: 100%;
+            max-width: 600px;
             margin: 80px 0 0 0;
             padding: 20px 15px 15px;
             background: linear-gradient(135deg, #1a1a3e, #0a0e27);
             border-radius: 16px;
-            text-align: center;
             border: 2px solid rgba(255, 193, 7, 0.3);
             box-shadow: 0 8px 32px rgba(255, 193, 7, 0.15);
+            margin-bottom: 20px;
         }
         .indicator-title {
             color: #ffc107;
@@ -85,29 +85,72 @@
             margin-bottom: 8px;
             text-transform: uppercase;
             letter-spacing: 1px;
+            text-align: center;
         }
-        .indicator-value {
-            color: #fff;
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-        .indicator-value.positive { color: #4caf50; }
-        .indicator-value.negative { color: #f44336; }
-        .indicator-sub {
+        .indicator-subtitle {
             color: rgba(255,255,255,0.5);
-            font-size: 12px;
-            margin-bottom: 12px;
+            font-size: 11px;
+            text-align: center;
+            margin-bottom: 10px;
         }
         .indicator-chart-container {
             width: 100%;
-            height: 120px;
+            height: 80px;
             position: relative;
         }
         .indicator-chart-container canvas {
             width: 100% !important;
             height: 100% !important;
         }
+        .indicator-stats {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 5px 0;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            margin-top: 8px;
+        }
+        .indicator-stat {
+            text-align: center;
+            flex: 1;
+        }
+        .indicator-stat-label {
+            color: rgba(255,255,255,0.4);
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .indicator-stat-value {
+            font-size: 14px;
+            font-weight: 700;
+            margin-top: 2px;
+        }
+        .indicator-stat-value.positive { color: #4caf50; }
+        .indicator-stat-value.negative { color: #f44336; }
+
+        .coin-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .coin-tab {
+            padding: 4px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.5);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .coin-tab.active {
+            background: rgba(255, 193, 7, 0.15);
+            border-color: #ffc107;
+            color: #ffc107;
+        }
+        .coin-tab:active { transform: scale(0.95); }
 
         #chartPage {
             display:none; position:fixed; top:0; left:0; width:100%; height:100%;
@@ -153,12 +196,112 @@
 
 <div id="indicatorsPage">
     <button class="back-btn" id="backFromIndicators">←</button>
+    
+    <!-- BTC ETF -->
     <div class="indicator-box">
-        <div class="indicator-title">📊 Притоки / Оттоки ETF</div>
-        <div class="indicator-value positive" id="etfValue">+$124.5M</div>
-        <div class="indicator-sub">За последние 7 дней</div>
+        <div class="indicator-title">₿ Bitcoin ETF</div>
+        <div class="indicator-subtitle">Притоки / Оттоки за 30 дней</div>
         <div class="indicator-chart-container">
-            <canvas id="etfChart"></canvas>
+            <canvas id="btcEtfChart"></canvas>
+        </div>
+        <div class="indicator-stats">
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Всего</div>
+                <div class="indicator-stat-value" id="btcTotal">+$0.0M</div>
+            </div>
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Средний</div>
+                <div class="indicator-stat-value" id="btcAvg">$0.0M</div>
+            </div>
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Макс</div>
+                <div class="indicator-stat-value positive" id="btcMax">$0.0M</div>
+            </div>
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Мин</div>
+                <div class="indicator-stat-value negative" id="btcMin">$0.0M</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ETH ETF -->
+    <div class="indicator-box">
+        <div class="indicator-title">⟠ Ethereum ETF</div>
+        <div class="indicator-subtitle">Притоки / Оттоки за 30 дней</div>
+        <div class="indicator-chart-container">
+            <canvas id="ethEtfChart"></canvas>
+        </div>
+        <div class="indicator-stats">
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Всего</div>
+                <div class="indicator-stat-value" id="ethTotal">+$0.0M</div>
+            </div>
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Средний</div>
+                <div class="indicator-stat-value" id="ethAvg">$0.0M</div>
+            </div>
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Макс</div>
+                <div class="indicator-stat-value positive" id="ethMax">$0.0M</div>
+            </div>
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Мин</div>
+                <div class="indicator-stat-value negative" id="ethMin">$0.0M</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SOL ETF -->
+    <div class="indicator-box">
+        <div class="indicator-title">◎ Solana ETF</div>
+        <div class="indicator-subtitle">Притоки / Оттоки за 30 дней</div>
+        <div class="indicator-chart-container">
+            <canvas id="solEtfChart"></canvas>
+        </div>
+        <div class="indicator-stats">
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Всего</div>
+                <div class="indicator-stat-value" id="solTotal">+$0.0M</div>
+            </div>
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Средний</div>
+                <div class="indicator-stat-value" id="solAvg">$0.0M</div>
+            </div>
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Макс</div>
+                <div class="indicator-stat-value positive" id="solMax">$0.0M</div>
+            </div>
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Мин</div>
+                <div class="indicator-stat-value negative" id="solMin">$0.0M</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- XRP ETF -->
+    <div class="indicator-box">
+        <div class="indicator-title">✕ XRP ETF</div>
+        <div class="indicator-subtitle">Притоки / Оттоки за 30 дней</div>
+        <div class="indicator-chart-container">
+            <canvas id="xrpEtfChart"></canvas>
+        </div>
+        <div class="indicator-stats">
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Всего</div>
+                <div class="indicator-stat-value" id="xrpTotal">+$0.0M</div>
+            </div>
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Средний</div>
+                <div class="indicator-stat-value" id="xrpAvg">$0.0M</div>
+            </div>
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Макс</div>
+                <div class="indicator-stat-value positive" id="xrpMax">$0.0M</div>
+            </div>
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Мин</div>
+                <div class="indicator-stat-value negative" id="xrpMin">$0.0M</div>
+            </div>
         </div>
     </div>
 </div>
@@ -195,74 +338,82 @@ $('mainBtn').onclick = () => { $('appContainer').style.display = 'none'; $('indi
 $('backFromIndicators').onclick = () => { $('indicatorsPage').style.display = 'none'; $('appContainer').style.display = 'flex'; };
 
 let chart = null, currentCoinId = 'bitcoin', currentDays = 1, updateInterval = null, currentPrice = 0, isTouching = false;
-let etfChartInstance = null;
+const etfCharts = {};
 
 const coinMap = { 'bitcoin':'Bitcoin', 'ethereum':'Ethereum', 'binancecoin':'BNB', 'ripple':'XRP', 'solana':'Solana', 'tron':'TRX', 'hyperliquid':'Hype' };
 
-// Генерация случайных данных для ETF (симуляция)
-function generateETFData() {
-    const days = 30;
+// Генерация данных с притоками и оттоками
+function generateETFData(days = 30) {
     const data = [];
-    let value = 50;
+    let value = 0;
     for (let i = 0; i < days; i++) {
-        const change = (Math.random() - 0.5) * 40;
-        value = Math.max(10, Math.min(90, value + change));
+        // Случайное изменение от -30 до +30
+        const change = (Math.random() - 0.5) * 60;
+        value = Math.max(-80, Math.min(80, value + change));
         data.push(value);
     }
     return data;
 }
 
 // Создание графика ETF
-function drawETFChart() {
-    const ctx = document.getElementById('etfChart').getContext('2d');
-    const data = generateETFData();
-    const labels = data.map((_, i) => `${i+1}д`);
+function drawETFChart(containerId, data, color, statsId) {
+    const ctx = document.getElementById(containerId).getContext('2d');
     
-    // Расчет общего притока/оттока
-    const total = data.reduce((a, b) => a + b, 0);
-    const avg = total / data.length;
-    const last = data[data.length - 1];
-    const change = ((last - data[0]) / data[0] * 100);
-    
-    const valueEl = document.getElementById('etfValue');
-    if (change > 0) {
-        valueEl.className = 'indicator-value positive';
-        valueEl.textContent = `+$${Math.abs(change).toFixed(1)}M`;
-    } else {
-        valueEl.className = 'indicator-value negative';
-        valueEl.textContent = `-$${Math.abs(change).toFixed(1)}M`;
+    if (etfCharts[containerId]) {
+        etfCharts[containerId].destroy();
     }
     
-    if (etfChartInstance) etfChartInstance.destroy();
+    const labels = data.map((_, i) => `${i+1}д`);
+    const positive = data.filter(v => v > 0);
+    const negative = data.filter(v => v < 0);
+    const total = data.reduce((a, b) => a + b, 0);
+    const avg = total / data.length;
+    const max = Math.max(...data);
+    const min = Math.min(...data);
     
-    const gradient = ctx.createLinearGradient(0, 0, 0, 120);
-    gradient.addColorStop(0, 'rgba(76, 175, 80, 0.4)');
-    gradient.addColorStop(0.5, 'rgba(255, 193, 7, 0.2)');
-    gradient.addColorStop(1, 'rgba(244, 67, 54, 0.1)');
+    // Обновляем статистику
+    const totalEl = document.getElementById(statsId + 'Total');
+    const avgEl = document.getElementById(statsId + 'Avg');
+    const maxEl = document.getElementById(statsId + 'Max');
+    const minEl = document.getElementById(statsId + 'Min');
     
-    etfChartInstance = new Chart(ctx, {
+    totalEl.textContent = (total >= 0 ? '+' : '') + total.toFixed(1) + 'M';
+    totalEl.className = 'indicator-stat-value ' + (total >= 0 ? 'positive' : 'negative');
+    
+    avgEl.textContent = '$' + avg.toFixed(1) + 'M';
+    
+    maxEl.textContent = '+$' + max.toFixed(1) + 'M';
+    maxEl.className = 'indicator-stat-value positive';
+    
+    minEl.textContent = '-$' + Math.abs(min).toFixed(1) + 'M';
+    minEl.className = 'indicator-stat-value negative';
+    
+    const gradient = ctx.createLinearGradient(0, 0, 0, 80);
+    gradient.addColorStop(0, 'rgba(76, 175, 80, 0.3)');
+    gradient.addColorStop(0.5, 'rgba(255, 193, 7, 0.1)');
+    gradient.addColorStop(1, 'rgba(244, 67, 54, 0.3)');
+    
+    // Определяем цвет для каждой точки
+    const colors = data.map(v => v >= 0 ? '#4caf50' : '#f44336');
+    
+    etfCharts[containerId] = new Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
             datasets: [{
                 data: data,
-                borderColor: function(context) {
-                    const chart = context.chart;
-                    const {ctx, chartArea} = chart;
-                    if (!chartArea) return '#ffc107';
-                    
-                    const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-                    gradient.addColorStop(0, '#4caf50');
-                    gradient.addColorStop(0.5, '#ffc107');
-                    gradient.addColorStop(1, '#f44336');
-                    return gradient;
-                },
+                borderColor: color || '#ffc107',
                 backgroundColor: gradient,
                 fill: true,
                 tension: 0.4,
                 pointRadius: 0,
                 pointHoverRadius: 4,
-                borderWidth: 2
+                borderWidth: 2,
+                segment: {
+                    borderColor: function(context) {
+                        return context.p0.parsed.y >= 0 ? '#4caf50' : '#f44336';
+                    }
+                }
             }]
         },
         options: {
@@ -274,22 +425,23 @@ function drawETFChart() {
                     enabled: true,
                     callbacks: {
                         label: function(context) {
-                            return `$${context.parsed.y.toFixed(1)}M`;
+                            const val = context.parsed.y;
+                            return (val >= 0 ? '+' : '') + val.toFixed(1) + 'M';
                         }
                     }
                 }
             },
             scales: {
                 x: {
-                    grid: { color: 'rgba(255,255,255,0.05)' },
-                    ticks: { color: 'rgba(255,255,255,0.3)', maxTicksLimit: 8, font: { size: 8 } }
+                    grid: { color: 'rgba(255,255,255,0.03)' },
+                    ticks: { color: 'rgba(255,255,255,0.2)', maxTicksLimit: 8, font: { size: 7 } }
                 },
                 y: {
                     grid: { color: 'rgba(255,255,255,0.05)' },
                     ticks: { 
-                        color: 'rgba(255,255,255,0.3)', 
-                        callback: function(value) { return '$' + value + 'M'; },
-                        font: { size: 8 }
+                        color: 'rgba(255,255,255,0.2)', 
+                        callback: function(value) { return (value >= 0 ? '+' : '') + value + 'M'; },
+                        font: { size: 7 }
                     }
                 }
             },
@@ -301,11 +453,24 @@ function drawETFChart() {
     });
 }
 
-// Инициализация ETF графика при открытии страницы
+// Инициализация всех ETF графиков
+function initAllETFs() {
+    const btcData = generateETFData(30);
+    const ethData = generateETFData(30);
+    const solData = generateETFData(30);
+    const xrpData = generateETFData(30);
+    
+    drawETFChart('btcEtfChart', btcData, '#f7931a', 'btc');
+    drawETFChart('ethEtfChart', ethData, '#627eea', 'eth');
+    drawETFChart('solEtfChart', solData, '#9945ff', 'sol');
+    drawETFChart('xrpEtfChart', xrpData, '#00aae4', 'xrp');
+}
+
+// Запускаем при открытии страницы индикаторов
 document.getElementById('mainBtn').addEventListener('click', function() {
     document.getElementById('appContainer').style.display = 'none';
     document.getElementById('indicatorsPage').style.display = 'flex';
-    setTimeout(drawETFChart, 100);
+    setTimeout(initAllETFs, 100);
 });
 
 async function fetchWithRetry(url, retries=3) {
@@ -485,19 +650,4 @@ function render(data) {
         } else {
             const price = info.usd, chg = info.usd_24h_change || 0;
             const cls = chg>=0 ? 'green' : 'red';
-            const txt = (chg>=0?'+':'')+chg.toFixed(2)+'%';
-            item.innerHTML = `<span class="coin-number">${i+1}</span><div class="coin-icon ${c.symbol}">${c.icon}</div><div class="coin-info"><div class="coin-name">${c.name}</div><div class="coin-symbol">${c.symbol.toUpperCase()}</div></div><div class="coin-price">$${price.toFixed(2)}</div><div class="coin-change-24h ${cls}">${txt}</div>`;
-        }
-        item.onclick = () => openChart(c.id);
-        list.appendChild(item);
-    });
-}
-
-loadCoins();
-setInterval(loadCoins, 60000);
-
-// Обновление ETF графика каждые 30 секунд
-setInterval(drawETFChart, 30000);
-</script>
-</body>
-</html>
+            const txt = (chg>=0?'+':'
