@@ -471,6 +471,7 @@
         let updateInterval = null;
         let currentPrice = 0;
         let isTouching = false;
+        let etfInstances = {};
 
         const coins = [
             { id: 'bitcoin', name: 'Bitcoin', symbol: 'btc', icon: '₿' },
@@ -508,18 +509,13 @@
 
         // ==================== ETF API (SoSoValue) ====================
         const SOSO_API_KEY = 'SOSO-8cfbe60c06bf4678a1965a440eb24de7';
-        let etfInstances = {};
 
-        // Преобразование данных из API в формат для графика (последние 30 дней)
         function processETFData(rawData) {
             if (!rawData || !rawData.data || !rawData.data.flow || rawData.data.flow.length === 0) {
                 return [];
             }
-            // Берем последние 30 записей
             const flow = rawData.data.flow.slice(-30);
             return flow.map(item => {
-                // item - объект с полями, например { date: '2025-01-01', value: 123.4 }
-                // value может быть в млн $
                 return item.value || 0;
             });
         }
@@ -538,7 +534,6 @@
         }
 
         async function initETFs() {
-            // Показываем загрузку
             ['btcTotal', 'btcAvg', 'btcMax', 'btcMin', 'ethTotal', 'ethAvg', 'ethMax', 'ethMin'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = '...';
@@ -550,7 +545,6 @@
             const btcValues = processETFData(btcData);
             const ethValues = processETFData(ethData);
 
-            // Если данных нет, используем заглушки
             const finalBtc = btcValues.length > 0 ? btcValues : generateFallbackData(30);
             const finalEth = ethValues.length > 0 ? ethValues : generateFallbackData(30);
 
@@ -590,8 +584,7 @@
                 }
             };
 
-            updateStat(prefix + 'Total', (total >= 0 ? '+' : '') + total.toFixed(1) + 'M', total >= 0 ? 'positive' :
-            'negative');
+            updateStat(prefix + 'Total', (total >= 0 ? '+' : '') + total.toFixed(1) + 'M', total >= 0 ? 'positive' : 'negative');
             updateStat(prefix + 'Avg', '$' + avg.toFixed(1) + 'M');
             updateStat(prefix + 'Max', '+$' + max.toFixed(1) + 'M', 'positive');
             updateStat(prefix + 'Min', '-$' + Math.abs(min).toFixed(1) + 'M', 'negative');
@@ -669,8 +662,7 @@
             });
         }
 
-        // ==================== Остальной код (цены, графики) ====================
-
+        // ==================== Загрузка цен монет ====================
         let cache = null;
 
         async function loadCoins() {
@@ -726,15 +718,15 @@
                 }
 
                 div.innerHTML = `
-                        <span class="coin-number">${index + 1}</span>
-                        <div class="coin-icon ${coin.symbol}">${coin.icon}</div>
-                        <div class="coin-info">
-                            <div class="coin-name">${coin.name}</div>
-                            <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
-                        </div>
-                        ${priceHtml}
-                        ${changeHtml}
-                    `;
+                    <span class="coin-number">${index + 1}</span>
+                    <div class="coin-icon ${coin.symbol}">${coin.icon}</div>
+                    <div class="coin-info">
+                        <div class="coin-name">${coin.name}</div>
+                        <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
+                    </div>
+                    ${priceHtml}
+                    ${changeHtml}
+                `;
 
                 div.onclick = function() {
                     openChart(coin.id);
@@ -744,10 +736,10 @@
             });
         }
 
+        // ==================== График цены ====================
         async function fetchChartData(id, days) {
             try {
-                const url =
-                    `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`;
+                const url = `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`;
                 const response = await fetch(url);
                 if (!response.ok) throw new Error('Network response was not ok');
                 const data = await response.json();
@@ -848,8 +840,7 @@
 
             $('chH').style.cssText = `display:block;left:0;width:100%;top:${yPos - containerRect.top}px;`;
             $('chV').style.cssText = `display:block;top:0;height:100%;left:${xPos - containerRect.left}px;`;
-            $('chL').style.cssText =
-                `display:block;left:${xPos - containerRect.left + 10}px;top:${yPos - containerRect.top - 10}px;`;
+            $('chL').style.cssText = `display:block;left:${xPos - containerRect.left + 10}px;top:${yPos - containerRect.top - 10}px;`;
             $('chL').textContent = '$' + window._vals[idx].toFixed(2);
             $('chartPrice').textContent = '$' + window._vals[idx].toFixed(2);
             $('chartPrice').classList.add('touch');
@@ -923,10 +914,27 @@
             };
         });
 
-        // Обработчики crosshair
+        // ==================== Обработчики crosshair ====================
         const priceChart = $('priceChart');
         if (priceChart) {
-            ['mousemove', 'touchmove'].forEach(ev => {
-                priceChart.addEventListener(ev, function(e) {
-                    e.preventDefault();
-                    const c = ev
+            priceChart.addEventListener('mousemove', function(e) {
+                updateCrosshair(e.clientX, e.clientY);
+            });
+
+            priceChart.addEventListener('mouseleave', function() {
+                hideCrosshair();
+            });
+
+            priceChart.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                const t = e.touches[0];
+                if (t) {
+                    updateCrosshair(t.clientX, t.clientY);
+                }
+            }, { passive: false });
+
+            priceChart.addEventListener('touchmove', function(e) {
+                e.preventDefault();
+                const t = e.touches[0];
+                if (t) {
+                    updateCrosshair(t.clientX, t.client
