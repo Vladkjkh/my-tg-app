@@ -36,7 +36,7 @@
         }
         .coin-item:active { transform:scale(0.98); background:rgba(255,255,255,0.1); }
         .coin-number { color:rgba(255,255,255,0.25); font-size:12px; font-weight:bold; width:20px; flex-shrink:0; }
-        .coin-icon { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:bold; color:#fff; flex-shrink:0; }
+        .coin-icon { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; color:#fff; flex-shrink:0; }
         .coin-icon.btc { background:#f7931a; }
         .coin-icon.eth { background:#627eea; }
         .coin-icon.bnb { background:#f0b90b; }
@@ -53,12 +53,11 @@
         .coin-change-24h.red { color:#f44336; }
         .loading { color:rgba(255,255,255,0.5); text-align:center; padding:30px 0; font-size:14px; }
 
+        /* Страница индикаторов */
         #indicatorsPage {
             display:none; position:fixed; top:0; left:0; width:100%; height:100%;
             background:#0a0e27; z-index:999; padding:20px; 
-            flex-direction: column;
-            align-items: center;
-            overflow-y: auto;
+            flex-direction:column; align-items:center; overflow-y:auto;
         }
         #indicatorsPage .back-btn {
             position:absolute; top:16px; left:16px; z-index:10;
@@ -67,50 +66,40 @@
         }
         #indicatorsPage .back-btn:active { transform:scale(0.95); opacity:0.7; }
 
-        /* Стили для графика */
         .chart-container {
-            width: 100%;
-            max-width: 700px;
-            margin: 60px auto 20px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 16px;
-            padding: 20px;
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.1);
+            width:100%; max-width:700px; margin:60px auto 20px;
+            background:rgba(255,255,255,0.05); border-radius:16px; padding:20px;
+            backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.1);
         }
-        .chart-container h2 {
-            color: #fff;
-            font-size: 16px;
-            text-align: center;
-            margin-bottom: 15px;
-            opacity: 0.8;
+        .chart-container h2 { color:#fff; font-size:16px; text-align:center; margin-bottom:15px; opacity:0.8; }
+        .chart-container canvas { width:100% !important; height:auto !important; max-height:400px; }
+        .chart-legend { display:flex; justify-content:center; gap:30px; margin-top:12px; }
+        .chart-legend span { color:#fff; font-size:13px; display:flex; align-items:center; gap:8px; }
+        .chart-legend .dot { width:14px; height:14px; border-radius:4px; display:inline-block; }
+        .dot.orange { background:#FF8C00; }
+        .dot.blue { background:#1E90FF; }
+
+        /* Страница графика монеты */
+        #coinChartPage {
+            display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background:#0a0e27; z-index:1000; padding:20px;
+            flex-direction:column; align-items:center; overflow-y:auto;
         }
-        .chart-container canvas {
-            width: 100% !important;
-            height: auto !important;
-            max-height: 400px;
+        #coinChartPage .back-btn {
+            position:absolute; top:16px; left:16px; z-index:10;
+            background:rgba(255,255,255,0.1); border:none; color:#fff; font-size:20px;
+            padding:6px 14px; border-radius:20px; cursor:pointer;
         }
-        .chart-legend {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-top: 12px;
+        #coinChartPage .back-btn:active { transform:scale(0.95); opacity:0.7; }
+        #coinChartPage .coin-title {
+            color:#fff; font-size:22px; font-weight:bold; margin:50px 0 10px; text-align:center;
         }
-        .chart-legend span {
-            color: #fff;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        #coinChartPage .coin-price-large {
+            color:rgba(255,255,255,0.7); font-size:16px; margin-bottom:20px;
         }
-        .chart-legend .dot {
-            width: 14px;
-            height: 14px;
-            border-radius: 4px;
-            display: inline-block;
+        #coinChartPage .chart-container {
+            margin-top:0;
         }
-        .dot.orange { background: #FF8C00; }
-        .dot.blue { background: #1E90FF; }
     </style>
 </head>
 <body>
@@ -125,9 +114,9 @@
         </div>
     </div>
 
-    <!-- Страница индикаторов с графиком -->
+    <!-- Страница индикаторов -->
     <div id="indicatorsPage">
-        <button class="back-btn" id="backBtn">← Назад</button>
+        <button class="back-btn" id="backIndicatorsBtn">← Назад</button>
         <div class="chart-container">
             <h2>Притоки и оттоки ETF (млн $)</h2>
             <canvas id="etfChart"></canvas>
@@ -138,15 +127,25 @@
         </div>
     </div>
 
+    <!-- Страница графика монеты -->
+    <div id="coinChartPage">
+        <button class="back-btn" id="backCoinChartBtn">← Назад</button>
+        <div class="coin-title" id="coinChartTitle">Bitcoin</div>
+        <div class="coin-price-large" id="coinChartPrice">$97,854</div>
+        <div class="chart-container">
+            <canvas id="coinChart"></canvas>
+        </div>
+    </div>
+
     <script>
-        // Данные для графика
+        // Данные для графика ETF
         const dates = ['1 июня', '5 июня', '10 июня', '15 июня', '18 июня', '24 июня'];
         const bitcoinData = [-150, -80, 50, -200, -444.5, -120];
         const ethereumData = [-5, 20, 10, -8, -12.8, 15];
 
-        // Инициализация графика
+        // Инициализация графика ETF
         const ctx = document.getElementById('etfChart').getContext('2d');
-        const chart = new Chart(ctx, {
+        new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: dates,
@@ -173,9 +172,7 @@
                 responsive: true,
                 maintainAspectRatio: true,
                 plugins: {
-                    legend: {
-                        display: false, // скрываем стандартную легенду, используем свою
-                    },
+                    legend: { display: false },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
@@ -194,15 +191,10 @@
                         ticks: { 
                             color: 'rgba(255,255,255,0.6)', 
                             font: { size: 11 },
-                            callback: function(value) {
-                                return value + 'M';
-                            }
-                        },
-                        // Горизонтальная линия на 0
-                        beginAtZero: true
+                            callback: function(value) { return value + 'M'; }
+                        }
                     }
-                },
-                // Добавляем линию на 0 через annotation не получится без плагина, сделаем через afterDraw
+                }
             },
             plugins: [{
                 id: 'zeroLine',
@@ -216,43 +208,65 @@
                     ctx.lineTo(chart.chartArea.right, yZero);
                     ctx.strokeStyle = '#ffffff';
                     ctx.lineWidth = 2;
-                    ctx.setLineDash([]);
                     ctx.stroke();
                     ctx.restore();
                 }
             }]
         });
 
-        // Навигация
-        const indicatorsBtn = document.getElementById('indicatorsBtn');
-        const indicatorsPage = document.getElementById('indicatorsPage');
-        const backBtn = document.getElementById('backBtn');
-
-        indicatorsBtn.addEventListener('click', () => {
-            indicatorsPage.style.display = 'flex';
+        // Данные для графика монеты (заглушка)
+        const coinChartCtx = document.getElementById('coinChart').getContext('2d');
+        let coinChart = new Chart(coinChartCtx, {
+            type: 'line',
+            data: {
+                labels: ['1ч', '2ч', '3ч', '4ч', '5ч', '6ч', '7ч', '8ч', '9ч', '10ч', '11ч', '12ч'],
+                datasets: [{
+                    label: 'Цена',
+                    data: [100, 102, 98, 105, 110, 108, 112, 115, 113, 118, 120, 122],
+                    borderColor: '#f7931a',
+                    backgroundColor: 'rgba(247, 147, 26, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.08)' },
+                        ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } }
+                    }
+                }
+            }
         });
 
-        backBtn.addEventListener('click', () => {
-            indicatorsPage.style.display = 'none';
-        });
-
-        // Имитация загрузки списка монет
-        const coinsList = document.getElementById('coinsList');
+        // Монеты
         const coins = [
-            { name: 'Bitcoin', symbol: 'BTC', price: '$97,854', change: '+2.34%', icon: 'btc' },
-            { name: 'Ethereum', symbol: 'ETH', price: '$3,821', change: '-1.12%', icon: 'eth' },
-            { name: 'BNB', symbol: 'BNB', price: '$612', change: '+0.87%', icon: 'bnb' },
-            { name: 'XRP', symbol: 'XRP', price: '$2.41', change: '-0.45%', icon: 'xrp' },
-            { name: 'Solana', symbol: 'SOL', price: '$189.4', change: '+5.21%', icon: 'sol' },
-            { name: 'TRON', symbol: 'TRX', price: '$0.24', change: '-2.10%', icon: 'trx' },
-            { name: 'Hype', symbol: 'HYPE', price: '$12.80', change: '+12.3%', icon: 'hype' },
+            { name: 'Bitcoin', symbol: 'BTC', price: '$97,854', change: '+2.34%', icon: 'btc', color: '#f7931a' },
+            { name: 'Ethereum', symbol: 'ETH', price: '$3,821', change: '-1.12%', icon: 'eth', color: '#627eea' },
+            { name: 'BNB', symbol: 'BNB', price: '$612', change: '+0.87%', icon: 'bnb', color: '#f0b90b' },
+            { name: 'XRP', symbol: 'XRP', price: '$2.41', change: '-0.45%', icon: 'xrp', color: '#00aae4' },
+            { name: 'Solana', symbol: 'SOL', price: '$189.4', change: '+5.21%', icon: 'sol', color: '#9945ff' },
+            { name: 'TRON', symbol: 'TRX', price: '$0.24', change: '-2.10%', icon: 'trx', color: '#ef0027' },
+            { name: 'Hype', symbol: 'HYPE', price: '$12.80', change: '+12.3%', icon: 'hype', color: '#8b5cf6' },
         ];
 
+        // Рендер списка монет
+        const coinsList = document.getElementById('coinsList');
         function renderCoins() {
             coinsList.innerHTML = coins.map((c, i) => {
                 const isGreen = c.change.startsWith('+');
                 return `
-                    <div class="coin-item">
+                    <div class="coin-item" data-index="${i}">
                         <span class="coin-number">${i+1}</span>
                         <div class="coin-icon ${c.icon}">${c.symbol.slice(0,2)}</div>
                         <div class="coin-info">
@@ -264,8 +278,44 @@
                     </div>
                 `;
             }).join('');
+
+            // Вешаем клики
+            document.querySelectorAll('.coin-item').forEach(el => {
+                el.addEventListener('click', function() {
+                    const idx = parseInt(this.dataset.index);
+                    openCoinChart(idx);
+                });
+            });
         }
         renderCoins();
+
+        // Открыть график монеты
+        function openCoinChart(index) {
+            const coin = coins[index];
+            document.getElementById('coinChartTitle').textContent = coin.name;
+            document.getElementById('coinChartPrice').textContent = coin.price;
+
+            // Меняем цвет линии
+            coinChart.data.datasets[0].borderColor = coin.color;
+            coinChart.data.datasets[0].backgroundColor = coin.color + '33'; // с прозрачностью
+            // Генерируем случайные данные
+            const newData = Array.from({length: 12}, () => Math.random() * 50 + 50);
+            coinChart.data.datasets[0].data = newData;
+            coinChart.update();
+
+            document.getElementById('coinChartPage').style.display = 'flex';
+        }
+
+        // Навигация
+        document.getElementById('indicatorsBtn').addEventListener('click', () => {
+            document.getElementById('indicatorsPage').style.display = 'flex';
+        });
+        document.getElementById('backIndicatorsBtn').addEventListener('click', () => {
+            document.getElementById('indicatorsPage').style.display = 'none';
+        });
+        document.getElementById('backCoinChartBtn').addEventListener('click', () => {
+            document.getElementById('coinChartPage').style.display = 'none';
+        });
     </script>
 </body>
 </html>
