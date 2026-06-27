@@ -43,22 +43,30 @@ async function initETFs() {
     const btcValues = extractETFValues(btcData);
     if (btcValues && btcValues.length > 0) {
         drawETFChart('btcEtf', btcValues, '#f7931a', 'btc');
+        // Обновляем статистику BTC
+        updateETFStats('btc', btcValues);
     } else {
         console.warn('⚠️ Нет данных для BTC, использую заглушку');
         document.getElementById('btcError').textContent = '⚠️ Нет данных от API';
         document.getElementById('btcError').style.display = 'block';
-        drawETFChart('btcEtf', generateFallbackData(30), '#f7931a', 'btc');
+        const fallbackBtc = generateFallbackData(30);
+        drawETFChart('btcEtf', fallbackBtc, '#f7931a', 'btc');
+        updateETFStats('btc', fallbackBtc);
     }
 
     // Обрабатываем ETH
     const ethValues = extractETFValues(ethData);
     if (ethValues && ethValues.length > 0) {
         drawETFChart('ethEtf', ethValues, '#627eea', 'eth');
+        // Обновляем статистику ETH
+        updateETFStats('eth', ethValues);
     } else {
         console.warn('⚠️ Нет данных для ETH, использую заглушку');
         document.getElementById('ethError').textContent = '⚠️ Нет данных от API';
         document.getElementById('ethError').style.display = 'block';
-        drawETFChart('ethEtf', generateFallbackData(30), '#627eea', 'eth');
+        const fallbackEth = generateFallbackData(30);
+        drawETFChart('ethEtf', fallbackEth, '#627eea', 'eth');
+        updateETFStats('eth', fallbackEth);
     }
 }
 
@@ -97,4 +105,28 @@ function extractETFValues(data) {
     // Проверяем, есть ли данные
     const hasData = values.some(v => v !== 0);
     return hasData ? values : null;
+}
+
+// ==================== Функция обновления статистики ====================
+function updateETFStats(coin, values) {
+    if (!values || values.length === 0) return;
+    
+    const prefix = coin.toLowerCase();
+    const total = values.reduce((a, b) => a + b, 0);
+    const avg = total / values.length;
+    const max = Math.max(...values);
+    const min = Math.min(...values);
+    
+    // Форматируем числа
+    const formatNum = (num) => {
+        if (Math.abs(num) >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+        if (Math.abs(num) >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+        return num.toFixed(2);
+    };
+    
+    // Обновляем DOM
+    document.getElementById(`${prefix}Total`).textContent = formatNum(total);
+    document.getElementById(`${prefix}Avg`).textContent = formatNum(avg);
+    document.getElementById(`${prefix}Max`).textContent = formatNum(max);
+    document.getElementById(`${prefix}Min`).textContent = formatNum(min);
 }
