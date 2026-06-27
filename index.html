@@ -3,95 +3,131 @@ const SOSO_API_KEY = 'SOSO-8cfbe60c06bf4678a1965a440eb24de7';
 
 async function fetchETFData(coin) {
     try {
+        console.log(`Запрашиваю данные для ${coin}...`);
         const url = `https://api.sosovalue.com/v1/etf/flow?symbol=${coin}`;
         
         const response = await fetch(url, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
-                'x-api-key': SOSO_API_KEY  // КЛЮЧ В ЗАГОЛОВКЕ!
+                'x-api-key': SOSO_API_KEY
             }
         });
+
+        console.log(`Ответ для ${coin}:`, response.status, response.statusText);
 
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
         const data = await response.json();
-        console.log(`📊 Данные для ${coin}:`, data);
+        console.log(`Данные для ${coin}:`, data);
         return data;
     } catch (e) {
-        console.error(`❌ Ошибка загрузки ETF данных для ${coin}:`, e);
+        console.error(`Ошибка загрузки ETF данных для ${coin}:`, e);
         return null;
     }
 }
 
 async function initETFs() {
+    console.log('Запуск initETFs()...');
+    
     // Показываем загрузку
     ['btcTotal', 'btcAvg', 'btcMax', 'btcMin', 'ethTotal', 'ethAvg', 'ethMax', 'ethMin'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.textContent = '⏳';
+        if (el) el.textContent = 'Загрузка...';
     });
 
-    // Загружаем данные
-    const [btcData, ethData] = await Promise.all([
-        fetchETFData('BTC'),
-        fetchETFData('ETH')
-    ]);
+    try {
+        // Загружаем данные
+        console.log('Загружаю данные...');
+        const [btcData, ethData] = await Promise.all([
+            fetchETFData('BTC'),
+            fetchETFData('ETH')
+        ]);
 
-    // Обрабатываем BTC
-    const btcValues = extractETFValues(btcData);
-    if (btcValues && btcValues.length > 0) {
-        drawETFChart('btcEtf', btcValues, '#f7931a', 'btc');
-        // Обновляем статистику BTC
-        updateETFStats('btc', btcValues);
-    } else {
-        console.warn('⚠️ Нет данных для BTC, использую заглушку');
-        document.getElementById('btcError').textContent = '⚠️ Нет данных от API';
-        document.getElementById('btcError').style.display = 'block';
-        const fallbackBtc = generateFallbackData(30);
-        drawETFChart('btcEtf', fallbackBtc, '#f7931a', 'btc');
-        updateETFStats('btc', fallbackBtc);
-    }
+        console.log('Данные загружены:', { btcData, ethData });
 
-    // Обрабатываем ETH
-    const ethValues = extractETFValues(ethData);
-    if (ethValues && ethValues.length > 0) {
-        drawETFChart('ethEtf', ethValues, '#627eea', 'eth');
-        // Обновляем статистику ETH
-        updateETFStats('eth', ethValues);
-    } else {
-        console.warn('⚠️ Нет данных для ETH, использую заглушку');
-        document.getElementById('ethError').textContent = '⚠️ Нет данных от API';
-        document.getElementById('ethError').style.display = 'block';
-        const fallbackEth = generateFallbackData(30);
-        drawETFChart('ethEtf', fallbackEth, '#627eea', 'eth');
-        updateETFStats('eth', fallbackEth);
+        // Обрабатываем BTC
+        if (btcData) {
+            const btcValues = extractETFValues(btcData);
+            console.log('Извлеченные значения BTC:', btcValues);
+            
+            if (btcValues && btcValues.length > 0) {
+                drawETFChart('btcEtf', btcValues, '#f7931a', 'btc');
+                updateETFStats('btc', btcValues);
+            } else {
+                console.warn('Нет данных для BTC, использую заглушку');
+                document.getElementById('btcError').textContent = 'Нет данных от API';
+                document.getElementById('btcError').style.display = 'block';
+                const fallbackBtc = generateFallbackData(30);
+                drawETFChart('btcEtf', fallbackBtc, '#f7931a', 'btc');
+                updateETFStats('btc', fallbackBtc);
+            }
+        }
+
+        // Обрабатываем ETH
+        if (ethData) {
+            const ethValues = extractETFValues(ethData);
+            console.log('Извлеченные значения ETH:', ethValues);
+            
+            if (ethValues && ethValues.length > 0) {
+                drawETFChart('ethEtf', ethValues, '#627eea', 'eth');
+                updateETFStats('eth', ethValues);
+            } else {
+                console.warn('Нет данных для ETH, использую заглушку');
+                document.getElementById('ethError').textContent = 'Нет данных от API';
+                document.getElementById('ethError').style.display = 'block';
+                const fallbackEth = generateFallbackData(30);
+                drawETFChart('ethEtf', fallbackEth, '#627eea', 'eth');
+                updateETFStats('eth', fallbackEth);
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка в initETFs:', error);
     }
 }
 
 function extractETFValues(data) {
-    if (!data) return null;
+    if (!data) {
+        console.warn('Данные пустые');
+        return null;
+    }
+    
+    console.log('Извлекаю значения из:', data);
     
     // Пробуем разные структуры ответа
     let flowData = null;
     
     if (data.data && data.data.flow) {
         flowData = data.data.flow;
+        console.log('Нашел data.data.flow');
     } else if (data.flow) {
         flowData = data.flow;
+        console.log('Нашел data.flow');
     } else if (Array.isArray(data)) {
         flowData = data;
+        console.log('Нашел массив data');
     } else if (data.data && Array.isArray(data.data)) {
         flowData = data.data;
-    }
-
-    if (!flowData || flowData.length === 0) {
+        console.log('Нашел data.data');
+    } else {
+        console.warn('Неизвестная структура данных:', Object.keys(data));
+        // Показываем структуру для отладки
+        console.log('Структура:', JSON.stringify(data).substring(0, 500));
         return null;
     }
 
+    if (!flowData || flowData.length === 0) {
+        console.warn('Нет данных flow');
+        return null;
+    }
+
+    console.log(`Найдено ${flowData.length} записей`);
+
     // Берем последние 30 дней
     const recent = flowData.slice(-30);
+    console.log(`Последние ${recent.length} записей`);
     
     // Извлекаем числовые значения
     const values = recent.map(item => {
@@ -99,17 +135,29 @@ function extractETFValues(data) {
         if (item.value !== undefined) return Number(item.value);
         if (item.flow !== undefined) return Number(item.flow);
         if (item.amount !== undefined) return Number(item.amount);
+        if (item.close !== undefined) return Number(item.close);
+        if (item.price !== undefined) return Number(item.price);
+        console.warn('Неизвестный формат элемента:', item);
         return 0;
     });
 
+    console.log('Извлеченные значения (первые 5):', values.slice(0, 5));
+    console.log('Всего значений:', values.length);
+
     // Проверяем, есть ли данные
     const hasData = values.some(v => v !== 0);
+    console.log(`Есть данные: ${hasData}`);
+    
     return hasData ? values : null;
 }
 
-// ==================== Функция обновления статистики ====================
 function updateETFStats(coin, values) {
-    if (!values || values.length === 0) return;
+    if (!values || values.length === 0) {
+        console.warn(`Нет значений для ${coin}`);
+        return;
+    }
+    
+    console.log(`Обновляю статистику для ${coin}:`, values);
     
     const prefix = coin.toLowerCase();
     const total = values.reduce((a, b) => a + b, 0);
@@ -117,16 +165,70 @@ function updateETFStats(coin, values) {
     const max = Math.max(...values);
     const min = Math.min(...values);
     
+    console.log(`${coin}: total=${total}, avg=${avg}, max=${max}, min=${min}`);
+    
     // Форматируем числа
     const formatNum = (num) => {
         if (Math.abs(num) >= 1e9) return (num / 1e9).toFixed(2) + 'B';
         if (Math.abs(num) >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+        if (Math.abs(num) >= 1e3) return (num / 1e3).toFixed(2) + 'K';
         return num.toFixed(2);
     };
     
     // Обновляем DOM
-    document.getElementById(`${prefix}Total`).textContent = formatNum(total);
-    document.getElementById(`${prefix}Avg`).textContent = formatNum(avg);
-    document.getElementById(`${prefix}Max`).textContent = formatNum(max);
-    document.getElementById(`${prefix}Min`).textContent = formatNum(min);
+    const elements = {
+        total: document.getElementById(`${prefix}Total`),
+        avg: document.getElementById(`${prefix}Avg`),
+        max: document.getElementById(`${prefix}Max`),
+        min: document.getElementById(`${prefix}Min`)
+    };
+    
+    console.log('Ищу элементы:', {
+        total: `${prefix}Total`,
+        avg: `${prefix}Avg`,
+        max: `${prefix}Max`,
+        min: `${prefix}Min`
+    });
+    
+    if (elements.total) elements.total.textContent = formatNum(total);
+    if (elements.avg) elements.avg.textContent = formatNum(avg);
+    if (elements.max) elements.max.textContent = formatNum(max);
+    if (elements.min) elements.min.textContent = formatNum(min);
 }
+
+// Функция для генерации тестовых данных
+function generateFallbackData(days) {
+    const data = [];
+    let value = 100;
+    for (let i = 0; i < days; i++) {
+        value += (Math.random() - 0.5) * 10;
+        data.push(Math.max(0, value));
+    }
+    return data;
+}
+
+// Функция отрисовки графика (заглушка)
+function drawETFChart(containerId, data, color, label) {
+    console.log(`Отрисовка графика для ${label}:`, containerId, data.length);
+    const container = document.getElementById(containerId);
+    if (!container) {
+        console.warn(`Контейнер ${containerId} не найден`);
+        return;
+    }
+    container.innerHTML = `<div style="padding:20px;background:#1e1e1e;border-radius:8px;color:#fff;">
+        <h4>${label.toUpperCase()} ETF (${data.length} точек)</h4>
+        <div style="height:200px;display:flex;align-items:flex-end;gap:2px;padding:10px 0;">
+            ${data.map(v => `<div style="flex:1;height:${Math.max(5, (v / Math.max(...data)) * 100)}%;background:${color};border-radius:2px;min-height:5px;"></div>`).join('')}
+        </div>
+        <div style="font-size:12px;color:#888;margin-top:10px;">
+            Макс: ${Math.max(...data).toFixed(2)} | Мин: ${Math.min(...data).toFixed(2)} | Сред: ${(data.reduce((a,b)=>a+b,0)/data.length).toFixed(2)}
+        </div>
+    </div>`;
+}
+
+// Запускаем при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Страница загружена, запускаю initETFs()');
+    initETFs();
+});
+    
