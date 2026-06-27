@@ -67,6 +67,7 @@
         }
         #indicatorsPage .back-btn:active { transform:scale(0.95); opacity:0.7; }
 
+        /* Стили для индикаторов */
         .indicator-box {
             width: 100%;
             max-width: 600px;
@@ -172,6 +173,7 @@
 <div id="indicatorsPage">
     <button class="back-btn" id="backFromIndicators">←</button>
     
+    <!-- BTC ETF - Оранжевый -->
     <div class="indicator-box">
         <div class="indicator-title">₿ Bitcoin ETF</div>
         <div class="indicator-subtitle">Притоки / Оттоки за 30 дней</div>
@@ -198,6 +200,7 @@
         </div>
     </div>
 
+    <!-- ETH ETF - Синий -->
     <div class="indicator-box">
         <div class="indicator-title">⟠ Ethereum ETF</div>
         <div class="indicator-subtitle">Притоки / Оттоки за 30 дней</div>
@@ -258,7 +261,7 @@ const $ = id => document.getElementById(id);
 $('mainBtn').onclick = function() { 
     $('appContainer').style.display = 'none'; 
     $('indicatorsPage').style.display = 'flex'; 
-    setTimeout(loadETFData, 100);
+    setTimeout(initAllETFs, 100);
 };
 
 $('backFromIndicators').onclick = function() { 
@@ -277,24 +280,8 @@ const etfCharts = {};
 
 const coinMap = { 'bitcoin':'Bitcoin', 'ethereum':'Ethereum', 'binancecoin':'BNB', 'ripple':'XRP', 'solana':'Solana', 'tron':'TRX', 'hyperliquid':'Hype' };
 
-// Функция для получения реальных данных ETF
-async function fetchETFData(symbol) {
-    try {
-        // Используем API Farside Investors для получения данных ETF
-        const url = `https://farside.co.uk/api/flow/${symbol}/`;
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Network response was not ok');
-        const data = await response.json();
-        return data;
-    } catch(e) {
-        console.error('Error fetching ETF data:', e);
-        // В случае ошибки генерируем тестовые данные
-        return generateTestData();
-    }
-}
-
-// Генерация тестовых данных при ошибке
-function generateTestData(days = 30) {
+// Генерация данных с притоками и оттоками
+function generateETFData(days = 30) {
     const data = [];
     let value = 0;
     for (let i = 0; i < days; i++) {
@@ -303,31 +290,6 @@ function generateTestData(days = 30) {
         data.push(Math.round(value * 10) / 10);
     }
     return data;
-}
-
-// Загрузка и отображение данных ETF
-async function loadETFData() {
-    try {
-        // Загружаем данные для BTC и ETH
-        const [btcData, ethData] = await Promise.all([
-            fetchETFData('btc'),
-            fetchETFData('eth')
-        ]);
-        
-        // Если данные получены, используем их, иначе генерируем тестовые
-        const btcFlows = Array.isArray(btcData) ? btcData.slice(-30).map(item => item.flow || 0) : generateTestData();
-        const ethFlows = Array.isArray(ethData) ? ethData.slice(-30).map(item => item.flow || 0) : generateTestData();
-        
-        drawETFChart('btcEtfChart', btcFlows, '#f7931a', 'btc');
-        drawETFChart('ethEtfChart', ethFlows, '#627eea', 'eth');
-    } catch(e) {
-        console.error('Error loading ETF data:', e);
-        // Если ошибка, используем тестовые данные
-        const btcData = generateTestData();
-        const ethData = generateTestData();
-        drawETFChart('btcEtfChart', btcData, '#f7931a', 'btc');
-        drawETFChart('ethEtfChart', ethData, '#627eea', 'eth');
-    }
 }
 
 // Создание столбчатой диаграммы ETF
@@ -342,18 +304,11 @@ function drawETFChart(containerId, data, color, statsId) {
         delete etfCharts[containerId];
     }
     
-    // Если данных меньше 30, дополняем
-    while (data.length < 30) {
-        data.push(0);
-    }
-    
-    // Берем последние 30 дней
-    const displayData = data.slice(-30);
-    
-    const total = displayData.reduce((a, b) => a + b, 0);
-    const avg = total / displayData.length;
-    const max = Math.max(...displayData);
-    const min = Math.min(...displayData);
+    const labels = data.map((_, i) => `${i+1}`);
+    const total = data.reduce((a, b) => a + b, 0);
+    const avg = total / data.length;
+    const max = Math.max(...data);
+    const min = Math.min(...data);
     
     // Обновляем статистику
     const totalEl = document.getElementById(statsId + 'Total');
@@ -375,16 +330,17 @@ function drawETFChart(containerId, data, color, statsId) {
         minEl.className = 'indicator-stat-value negative';
     }
     
-    const barColors = displayData.map(v => v >= 0 ? color : '#f44336');
+    // Цвета для столбцов (выше нуля - зеленый/оранжевый, ниже - красный)
+    const barColors = data.map(v => v >= 0 ? color : '#f44336');
     
     etfCharts[containerId] = new Chart(context, {
         type: 'bar',
         data: {
-            labels: displayData.map((_, i) => `${i+1}`),
+            labels: labels,
             datasets: [{
-                data: displayData,
+                data: data,
                 backgroundColor: barColors,
-                borderColor: barColors,
+                borderColor: barColors.map(c => c),
                 borderWidth: 1,
                 borderRadius: 2,
                 barPercentage: 0.8,
@@ -429,11 +385,20 @@ function drawETFChart(containerId, data, color, statsId) {
                             return (value >= 0 ? '+' : '') + value + 'M'; 
                         },
                         font: { size: 8 }
-                    }
+                    },
+                    // Горизонтальная линия на 0
+                    zeroLineColor: 'rgba(255,255,255,0.5)',
+                    zeroLineWidth: 2,
+                    zeroLineBorderDash: [4, 4]
                 }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
             }
         },
         plugins: [{
+            // Плагин для рисования горизонтальной линии на 0
             afterDraw: function(chart) {
                 const yScale = chart.scales.y;
                 const xScale = chart.scales.x;
@@ -450,6 +415,7 @@ function drawETFChart(containerId, data, color, statsId) {
                 ctx.stroke();
                 ctx.restore();
                 
+                // Подпись "0"
                 ctx.save();
                 ctx.fillStyle = 'rgba(255,255,255,0.3)';
                 ctx.font = '8px Arial';
@@ -459,6 +425,15 @@ function drawETFChart(containerId, data, color, statsId) {
             }
         }]
     });
+}
+
+// Инициализация всех ETF графиков
+function initAllETFs() {
+    const btcData = generateETFData(30);
+    const ethData = generateETFData(30);
+    
+    drawETFChart('btcEtfChart', btcData, '#f7931a', 'btc');
+    drawETFChart('ethEtfChart', ethData, '#627eea', 'eth');
 }
 
 async function fetchWithRetry(url, retries=3) {
@@ -698,9 +673,6 @@ function render(data) {
 
 loadCoins();
 setInterval(loadCoins, 60000);
-
-// Загружаем ETF данные при старте
-setTimeout(loadETFData, 500);
 </script>
 </body>
-</html>
+</html> подключи данные etf через fgb
