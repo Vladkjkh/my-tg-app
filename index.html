@@ -59,6 +59,9 @@
         .crosshair-line-h{pointer-events:none;position:absolute;border-top:1px dashed rgba(255,255,255,0.4);z-index:5}
         .crosshair-line-v{pointer-events:none;position:absolute;border-left:1px dashed rgba(255,255,255,0.4);z-index:5}
         .crosshair-label{pointer-events:none;position:absolute;color:#ffc107;font-size:12px;font-weight:700;background:rgba(0,0,0,0.7);padding:2px 6px;border-radius:4px;z-index:6}
+        .loading-spinner{color:rgba(255,255,255,0.5);text-align:center;padding:30px 0;font-size:14px}
+        .loading-spinner::after{content:'...';animation:dots 1.5s steps(4,end) infinite}
+        @keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}100%{content:''}}
     </style>
 </head>
 <body>
@@ -76,24 +79,24 @@
     <button class="back-btn" id="backInd">←</button>
     <div class="indicator-box">
         <div class="indicator-title">₿ Bitcoin ETF</div>
-        <div class="indicator-subtitle">Притоки / Оттоки за 30 дней</div>
+        <div class="indicator-subtitle" id="btcUpdateDate">Притоки / Оттоки за 30 дней</div>
         <div class="indicator-chart-container"><canvas id="btcEtf"></canvas></div>
         <div class="indicator-stats">
-            <div class="indicator-stat"><div class="indicator-stat-label">Всего</div><div class="indicator-stat-value" id="btcTotal">+$0.0M</div></div>
-            <div class="indicator-stat"><div class="indicator-stat-label">Средний</div><div class="indicator-stat-value" id="btcAvg">$0.0M</div></div>
-            <div class="indicator-stat"><div class="indicator-stat-label">Макс приток</div><div class="indicator-stat-value positive" id="btcMax">$0.0M</div></div>
-            <div class="indicator-stat"><div class="indicator-stat-label">Макс отток</div><div class="indicator-stat-value negative" id="btcMin">$0.0M</div></div>
+            <div class="indicator-stat"><div class="indicator-stat-label">Всего</div><div class="indicator-stat-value" id="btcTotal">--</div></div>
+            <div class="indicator-stat"><div class="indicator-stat-label">Средний</div><div class="indicator-stat-value" id="btcAvg">--</div></div>
+            <div class="indicator-stat"><div class="indicator-stat-label">Макс приток</div><div class="indicator-stat-value positive" id="btcMax">--</div></div>
+            <div class="indicator-stat"><div class="indicator-stat-label">Макс отток</div><div class="indicator-stat-value negative" id="btcMin">--</div></div>
         </div>
     </div>
     <div class="indicator-box">
         <div class="indicator-title">⟠ Ethereum ETF</div>
-        <div class="indicator-subtitle">Притоки / Оттоки за 30 дней</div>
+        <div class="indicator-subtitle" id="ethUpdateDate">Притоки / Оттоки за 30 дней</div>
         <div class="indicator-chart-container"><canvas id="ethEtf"></canvas></div>
         <div class="indicator-stats">
-            <div class="indicator-stat"><div class="indicator-stat-label">Всего</div><div class="indicator-stat-value" id="ethTotal">+$0.0M</div></div>
-            <div class="indicator-stat"><div class="indicator-stat-label">Средний</div><div class="indicator-stat-value" id="ethAvg">$0.0M</div></div>
-            <div class="indicator-stat"><div class="indicator-stat-label">Макс приток</div><div class="indicator-stat-value positive" id="ethMax">$0.0M</div></div>
-            <div class="indicator-stat"><div class="indicator-stat-label">Макс отток</div><div class="indicator-stat-value negative" id="ethMin">$0.0M</div></div>
+            <div class="indicator-stat"><div class="indicator-stat-label">Всего</div><div class="indicator-stat-value" id="ethTotal">--</div></div>
+            <div class="indicator-stat"><div class="indicator-stat-label">Средний</div><div class="indicator-stat-value" id="ethAvg">--</div></div>
+            <div class="indicator-stat"><div class="indicator-stat-label">Макс приток</div><div class="indicator-stat-value positive" id="ethMax">--</div></div>
+            <div class="indicator-stat"><div class="indicator-stat-label">Макс отток</div><div class="indicator-stat-value negative" id="ethMin">--</div></div>
         </div>
     </div>
 </div>
@@ -148,10 +151,42 @@ const coinMap = {};
 coins.forEach(c => coinMap[c.id] = c.name);
 
 // --- API КЛЮЧ ДЛЯ SOSOVOLUME ---
-// Вставьте ваш API ключ и эндпоинт
-const SOSOVOLUME_API_KEY = 'ваш_api_ключ_здесь';
-const SOSOVOLUME_BTC_URL = 'https://api.sosovolume.com/v1/etf/btc?api_key=' + SOSOVOLUME_API_KEY;
-const SOSOVOLUME_ETH_URL = 'https://api.sosovolume.com/v1/etf/eth?api_key=' + SOSOVOLUME_API_KEY;
+const SOSOVOLUME_API_KEY = 'SOSO-8cfbe60c06bf4678a1965a440eb24de7';
+
+// Функция для получения данных с API SoSoVolume
+async function fetchSoSoData(ticker, days = 30) {
+    try {
+        // Используем публичный эндпоинт SoSoVolume
+        // По документации, для получения данных по ETF нужно использовать /api/v1/etf/{ticker}
+        // Если эндпоинт другой, измените URL
+        const url = `https://api.sosovolume.com/api/v1/etf/${ticker}?days=${days}&api_key=${SOSOVOLUME_API_KEY}`;
+        
+        console.log(`Загрузка данных для ${ticker}...`);
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log(`Получены данные для ${ticker}:`, data);
+        
+        // Проверяем структуру данных
+        if (Array.isArray(data)) {
+            return data;
+        } else if (data.data && Array.isArray(data.data)) {
+            return data.data;
+        } } else if (data.result && Array.isArray(data.result)) {
+            return data.result;
+        } else {
+            console.warn('Неизвестная структура данных:', data);
+            return [];
+        }
+    } catch (error) {
+        console.error(`Ошибка загрузки данных для ${ticker}:`, error);
+        return null;
+    }
+}
 
 // Хранилище для данных ETF
 let etfDataStore = {
@@ -162,29 +197,87 @@ let etfDataStore = {
 // Функция загрузки данных с sosovolume
 async function loadETFData() {
     try {
-        // Загружаем данные для BTC
-        const btcResponse = await fetch(SOSOVOLUME_BTC_URL);
-        if (!btcResponse.ok) throw new Error('Ошибка загрузки BTC ETF');
-        const btcData = await btcResponse.json();
-        etfDataStore.btc = btcData;
+        // Показываем статус загрузки
+        showLoadingStatus(true);
         
-        // Загружаем данные для ETH
-        const ethResponse = await fetch(SOSOVOLUME_ETH_URL);
-        if (!ethResponse.ok) throw new Error('Ошибка загрузки ETH ETF');
-        const ethData = await ethResponse.json();
-        etfDataStore.eth = ethData;
+        // Загружаем данные для BTC и ETH параллельно
+        const [btcData, ethData] = await Promise.all([
+            fetchSoSoData('btc', 30),
+            fetchSoSoData('eth', 30)
+        ]);
+        
+        if (btcData && btcData.length > 0) {
+            etfDataStore.btc = btcData;
+        } else {
+            console.warn('Данные BTC не получены или пустые');
+            etfDataStore.btc = [];
+        }
+        
+        if (ethData && ethData.length > 0) {
+            etfDataStore.eth = ethData;
+        } else {
+            console.warn('Данные ETH не получены или пустые');
+            etfDataStore.eth = [];
+        }
+        
+        // Обновляем дату последнего обновления
+        updateDateInfo();
         
         // Если страница индикаторов открыта, обновляем графики
         if (document.getElementById('indicatorsPage').style.display === 'flex') {
             initETFs();
         }
         
-        console.log('Данные ETF загружены:', etfDataStore);
+        console.log('Данные ETF загружены:', {
+            btc: etfDataStore.btc.length,
+            eth: etfDataStore.eth.length
+        });
+        
+        showLoadingStatus(false);
         return true;
     } catch (error) {
         console.error('Ошибка загрузки ETF данных:', error);
+        showLoadingStatus(false);
         return false;
     }
+}
+
+function showLoadingStatus(show) {
+    const statusEl = document.getElementById('loadingStatus');
+    if (show) {
+        // Показываем индикатор загрузки на кнопке
+        const btn = document.getElementById('mainBtn');
+        if (btn && !btn.textContent.includes('⏳')) {
+            btn.textContent = '⏳ Загрузка данных...';
+        }
+    } else {
+        const btn = document.getElementById('mainBtn');
+        if (btn) {
+            btn.textContent = '📊 Индикаторы';
+        }
+    }
+}
+
+function updateDateInfo() {
+    // Обновляем дату в подзаголовках
+    const updateDate = (elementId, data) => {
+        const el = document.getElementById(elementId);
+        if (el && data && data.length > 0) {
+            const latest = data[0];
+            if (latest && latest.date) {
+                const date = new Date(latest.date);
+                const dateStr = date.toLocaleDateString('ru-RU', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    year: 'numeric' 
+                });
+                el.textContent = `Притоки / Оттоки (актуально на ${dateStr})`;
+            }
+        }
+    };
+    
+    updateDate('btcUpdateDate', etfDataStore.btc);
+    updateDate('ethUpdateDate', etfDataStore.eth);
 }
 
 // Навигация
@@ -230,10 +323,9 @@ function drawETFChart(canvasId, data, color, prefix) {
     
     // Если данных нет или они пустые
     if (!data || data.length === 0) {
-        // Показываем заглушку
         const canvas = ctx;
         const parent = canvas.parentElement;
-        parent.innerHTML = '<div style="color: rgba(255,255,255,0.5); text-align: center; padding: 30px;">Нет данных</div>';
+        parent.innerHTML = '<div style="color: rgba(255,255,255,0.5); text-align: center; padding: 30px;">📭 Нет данных</div>';
         return;
     }
     
@@ -241,7 +333,7 @@ function drawETFChart(canvasId, data, color, prefix) {
     const recentData = data.slice(0, 30).reverse();
     
     // Извлекаем значения net_inflow и даты
-    const values = recentData.map(d => d.net_inflow || 0);
+    const values = recentData.map(d => d.net_inflow || d.total_net_inflow || 0);
     const labels = recentData.map(d => {
         const date = new Date(d.date);
         return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
@@ -251,7 +343,7 @@ function drawETFChart(canvasId, data, color, prefix) {
     if (values.every(v => v === 0)) {
         const canvas = ctx;
         const parent = canvas.parentElement;
-        parent.innerHTML = '<div style="color: rgba(255,255,255,0.5); text-align: center; padding: 30px;">Нет данных</div>';
+        parent.innerHTML = '<div style="color: rgba(255,255,255,0.5); text-align: center; padding: 30px;">📊 Нет данных для отображения</div>';
         return;
     }
     
@@ -573,76 +665,4 @@ async function updateChart(id, days) {
     $('chartChange').className = 'chart-change-display ' + changeClass;
     
     const ctx = $('priceChart').getContext('2d');
-    if (chart) chart.destroy();
-    drawChart(ctx, prices);
-    hideCrosshair();
-}
-
-function openChart(id) {
-    currentCoinId = id;
-    $('app').style.display = 'none';
-    $('chartPage').style.display = 'flex';
-    $('chartTitle').textContent = coinMap[id] || id;
-    
-    document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
-    document.querySelector('.timeframe-btn[data-days="1"]').classList.add('active');
-    
-    currentDays = 1;
-    isTouching = false;
-    updateChart(id, 1);
-    
-    if (updateInterval) {
-        clearInterval(updateInterval);
-    }
-    updateInterval = setInterval(() => updateChart(currentCoinId, currentDays), 60000);
-}
-
-// Обработчики таймфреймов
-document.querySelectorAll('.timeframe-btn').forEach(btn => {
-    btn.onclick = function() {
-        document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        currentDays = parseFloat(this.dataset.days);
-        isTouching = false;
-        updateChart(currentCoinId, currentDays);
-    };
-});
-
-// Обработчики crosshair
-const priceChart = $('priceChart');
-if (priceChart) {
-    ['mousemove', 'touchmove'].forEach(ev => {
-        priceChart.addEventListener(ev, function(e) {
-            e.preventDefault();
-            const c = ev === 'touchmove' ? e.touches[0] : e;
-            updateCrosshair(c.clientX, c.clientY);
-        }, { passive: false });
-    });
-    
-    priceChart.addEventListener('mouseleave', hideCrosshair);
-    priceChart.addEventListener('touchend', hideCrosshair);
-    priceChart.addEventListener('touchstart', function(e) {
-        e.preventDefault();
-        const t = e.touches[0];
-        updateCrosshair(t.clientX, t.clientY);
-    }, { passive: false });
-}
-
-// Автоматическая загрузка данных при старте
-async function init() {
-    // Загружаем данные ETF в фоне
-    await loadETFData();
-    // Загружаем цены монет
-    loadCoins();
-    setInterval(loadCoins, 60000);
-    // Обновляем ETF данные каждые 5 минут
-    setInterval(async () => {
-        await loadETFData();
-    }, 300000);
-}
-
-// Запуск
-init();
-</script>
-</body>
-</html>
+    if (chart) chart.d
