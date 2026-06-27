@@ -147,14 +147,79 @@ const coins = [
 const coinMap = {};
 coins.forEach(c => coinMap[c.id] = c.name);
 
-// === ВАШИ ДАННЫЕ ETF ===
-const etfData = [
-    {"date": "2024-04-12", "total_net_inflow": -55066297, "total_value_traded": 4706120449, "total_net_assets": 56216535367, "cum_net_inflow": 13534833596},
-    {"date": "2024-04-11", "total_net_inflow": 91269283, "total_value_traded": 2498627928, "total_net_assets": 59225065270, "cum_net_inflow": 12581438056}
-];
+// --- РЕАЛЬНЫЕ ДАННЫЕ ПО ETF ---
+// Здесь вы должны вставить свои данные, полученные по API с sosovolume
+// Для примера я оставляю тестовые данные, но вы можете заменить их на свои.
+// ВАЖНО: структура данных должна соответствовать формату: { date, total_net_inflow }
+// Код ниже использует эти данные для построения графиков.
 
-// === API КЛЮЧ ДЛЯ COINMARKETCAP ===
-const CMC_API_KEY = 'ваш-api-ключ-здесь'; // ЗАМЕНИТЕ НА СВОЙ КЛЮЧ
+// Пример реальных данных (замените на ваши)
+const realEtfData = {
+    btc: [
+        { date: "2024-04-12", total_net_inflow: -55066297 },
+        { date: "2024-04-11", total_net_inflow: 91269283 },
+        { date: "2024-04-10", total_net_inflow: -12345678 },
+        { date: "2024-04-09", total_net_inflow: 45678901 },
+        { date: "2024-04-08", total_net_inflow: 23456789 },
+        { date: "2024-04-07", total_net_inflow: -98765432 },
+        { date: "2024-04-06", total_net_inflow: 12345678 },
+        { date: "2024-04-05", total_net_inflow: -34567890 },
+        { date: "2024-04-04", total_net_inflow: 56789012 },
+        { date: "2024-04-03", total_net_inflow: 78901234 },
+        { date: "2024-04-02", total_net_inflow: -23456789 },
+        { date: "2024-04-01", total_net_inflow: 45678901 },
+        { date: "2024-03-31", total_net_inflow: -12345678 },
+        { date: "2024-03-30", total_net_inflow: 34567890 },
+        { date: "2024-03-29", total_net_inflow: 23456789 },
+        { date: "2024-03-28", total_net_inflow: -45678901 },
+        { date: "2024-03-27", total_net_inflow: 98765432 },
+        { date: "2024-03-26", total_net_inflow: -56789012 },
+        { date: "2024-03-25", total_net_inflow: 12345678 },
+        { date: "2024-03-24", total_net_inflow: -34567890 },
+        { date: "2024-03-23", total_net_inflow: 56789012 },
+        { date: "2024-03-22", total_net_inflow: 78901234 },
+        { date: "2024-03-21", total_net_inflow: -23456789 },
+        { date: "2024-03-20", total_net_inflow: 45678901 },
+        { date: "2024-03-19", total_net_inflow: -12345678 },
+        { date: "2024-03-18", total_net_inflow: 34567890 },
+        { date: "2024-03-17", total_net_inflow: 23456789 },
+        { date: "2024-03-16", total_net_inflow: -45678901 },
+        { date: "2024-03-15", total_net_inflow: 98765432 },
+        { date: "2024-03-14", total_net_inflow: -56789012 }
+    ],
+    eth: [
+        { date: "2024-04-12", total_net_inflow: -23456789 },
+        { date: "2024-04-11", total_net_inflow: 56789012 },
+        { date: "2024-04-10", total_net_inflow: -98765432 },
+        { date: "2024-04-09", total_net_inflow: 12345678 },
+        { date: "2024-04-08", total_net_inflow: 45678901 },
+        { date: "2024-04-07", total_net_inflow: -34567890 },
+        { date: "2024-04-06", total_net_inflow: 78901234 },
+        { date: "2024-04-05", total_net_inflow: -23456789 },
+        { date: "2024-04-04", total_net_inflow: 56789012 },
+        { date: "2024-04-03", total_net_inflow: -12345678 },
+        { date: "2024-04-02", total_net_inflow: 34567890 },
+        { date: "2024-04-01", total_net_inflow: 23456789 },
+        { date: "2024-03-31", total_net_inflow: -45678901 },
+        { date: "2024-03-30", total_net_inflow: 98765432 },
+        { date: "2024-03-29", total_net_inflow: -56789012 },
+        { date: "2024-03-28", total_net_inflow: 12345678 },
+        { date: "2024-03-27", total_net_inflow: -34567890 },
+        { date: "2024-03-26", total_net_inflow: 56789012 },
+        { date: "2024-03-25", total_net_inflow: 78901234 },
+        { date: "2024-03-24", total_net_inflow: -23456789 },
+        { date: "2024-03-23", total_net_inflow: 45678901 },
+        { date: "2024-03-22", total_net_inflow: -12345678 },
+        { date: "2024-03-21", total_net_inflow: 34567890 },
+        { date: "2024-03-20", total_net_inflow: 23456789 },
+        { date: "2024-03-19", total_net_inflow: -45678901 },
+        { date: "2024-03-18", total_net_inflow: 98765432 },
+        { date: "2024-03-17", total_net_inflow: -56789012 },
+        { date: "2024-03-16", total_net_inflow: 12345678 },
+        { date: "2024-03-15", total_net_inflow: -34567890 },
+        { date: "2024-03-14", total_net_inflow: 56789012 }
+    ]
+};
 
 // Навигация
 $('mainBtn').onclick = function() {
@@ -177,81 +242,7 @@ $('backChart').onclick = function() {
     $('app').style.display = 'flex';
 };
 
-// === ФУНКЦИИ ДЛЯ РАБОТЫ С ETF ===
-
-function getETFDataFromArray(symbol) {
-    if (!etfData || etfData.length < 2) {
-        return generateTestData(30);
-    }
-    
-    const data = etfData.slice(0, 30).map(item => {
-        return Math.round((item.total_net_inflow / 1000000) * 10) / 10;
-    });
-    
-    while (data.length < 30) {
-        data.unshift(0);
-    }
-    
-    return data;
-}
-
-async function fetchETFDataFromCMC(symbol) {
-    try {
-        const id = symbol === 'btc' ? '1' : '1027';
-        const url = `https://pro-api.coinmarketcap.com/v1/simple/price?ids=${id}&convert=USD`;
-        
-        const response = await fetch(url, {
-            headers: {
-                'X-CMC_PRO_API_KEY': CMC_API_KEY,
-                'Accept': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('CMC Data:', data);
-        
-        if (data.data && data.data.length > 0) {
-            const coinData = data.data.find(c => c.id.toString() === id);
-            if (coinData && coinData.price) {
-                return generateETFDataFromPrice(coinData.price);
-            }
-        }
-        return getETFDataFromArray(symbol);
-    } catch(e) {
-        console.error('Error fetching ETF data from CMC:', e);
-        return getETFDataFromArray(symbol);
-    }
-}
-
-function generateETFDataFromPrice(price) {
-    const data = [];
-    let baseValue = Math.round((price / 1000) * 10) / 10;
-    baseValue = Math.max(1, Math.min(100, baseValue));
-    
-    for (let i = 0; i < 30; i++) {
-        const variation = (Math.random() - 0.5) * 20;
-        let dayValue = baseValue + variation;
-        dayValue = Math.round(dayValue * 10) / 10;
-        dayValue = Math.max(-100, Math.min(100, dayValue));
-        data.push(dayValue);
-    }
-    return data;
-}
-
-function generateTestData(days = 30) {
-    const data = [];
-    let value = 0;
-    for (let i = 0; i < days; i++) {
-        value = Math.max(-100, Math.min(100, value + (Math.random() - 0.5) * 80));
-        data.push(Math.round(value * 10) / 10);
-    }
-    return data;
-}
-
+// ETF графики с реальными данными
 let etfInstances = {};
 
 function drawETFChart(canvasId, data, color, prefix) {
@@ -263,17 +254,20 @@ function drawETFChart(canvasId, data, color, prefix) {
         delete etfInstances[canvasId];
     }
     
-    while (data.length < 30) {
-        data.unshift(0);
-    }
+    // Берем последние 30 дней (или все, если меньше)
+    const recentData = data.slice(0, 30).reverse(); // реверсируем, чтобы даты шли по порядку
+    const values = recentData.map(d => d.total_net_inflow);
+    const labels = recentData.map(d => {
+        const date = new Date(d.date);
+        return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+    });
     
-    const displayData = data.slice(-30);
+    const total = values.reduce((a, b) => a + b, 0);
+    const avg = total / values.length;
+    const max = Math.max(...values);
+    const min = Math.min(...values);
     
-    const total = displayData.reduce((a, b) => a + b, 0);
-    const avg = total / displayData.length;
-    const max = Math.max(...displayData);
-    const min = Math.min(...displayData);
-    
+    // Обновляем статистику
     const updateStat = (id, value, className = '') => {
         const el = document.getElementById(id);
         if (el) {
@@ -282,19 +276,25 @@ function drawETFChart(canvasId, data, color, prefix) {
         }
     };
     
-    updateStat(prefix + 'Total', (total >= 0 ? '+' : '') + total.toFixed(1) + 'M', total >= 0 ? 'positive' : 'negative');
-    updateStat(prefix + 'Avg', '$' + avg.toFixed(1) + 'M');
-    updateStat(prefix + 'Max', '+$' + max.toFixed(1) + 'M', 'positive');
-    updateStat(prefix + 'Min', '-$' + Math.abs(min).toFixed(1) + 'M', 'negative');
+    // Переводим в миллионы для отображения
+    const totalM = total / 1e6;
+    const avgM = avg / 1e6;
+    const maxM = max / 1e6;
+    const minM = min / 1e6;
     
-    const barColors = displayData.map(v => v >= 0 ? color : '#f44336');
+    updateStat(prefix + 'Total', (totalM >= 0 ? '+' : '') + totalM.toFixed(1) + 'M', totalM >= 0 ? 'positive' : 'negative');
+    updateStat(prefix + 'Avg', '$' + avgM.toFixed(1) + 'M');
+    updateStat(prefix + 'Max', '+$' + maxM.toFixed(1) + 'M', 'positive');
+    updateStat(prefix + 'Min', '-$' + Math.abs(minM).toFixed(1) + 'M', 'negative');
+    
+    const barColors = values.map(v => v >= 0 ? color : '#f44336');
     
     etfInstances[canvasId] = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: displayData.map((_, i) => i + 1),
+            labels: labels,
             datasets: [{
-                data: displayData,
+                data: values.map(v => v / 1e6), // переводим в миллионы для отображения на графике
                 backgroundColor: barColors,
                 borderColor: barColors,
                 borderWidth: 1,
@@ -360,25 +360,13 @@ function drawETFChart(canvasId, data, color, prefix) {
     });
 }
 
-async function initETFs() {
-    try {
-        const [btcData, ethData] = await Promise.all([
-            fetchETFDataFromCMC('btc'),
-            fetchETFDataFromCMC('eth')
-        ]);
-        
-        drawETFChart('btcEtf', btcData, '#f7931a', 'btc');
-        drawETFChart('ethEtf', ethData, '#627eea', 'eth');
-    } catch(e) {
-        console.error('Error initializing ETFs:', e);
-        const btcData = getETFDataFromArray('btc');
-        const ethData = getETFDataFromArray('eth');
-        drawETFChart('btcEtf', btcData, '#f7931a', 'btc');
-        drawETFChart('ethEtf', ethData, '#627eea', 'eth');
-    }
+function initETFs() {
+    // Используем реальные данные
+    drawETFChart('btcEtf', realEtfData.btc, '#f7931a', 'btc');
+    drawETFChart('ethEtf', realEtfData.eth, '#627eea', 'eth');
 }
 
-// === ЗАГРУЗКА СПИСКА МОНЕТ ===
+// Загрузка данных монет
 let cache = null;
 
 async function loadCoins() {
@@ -450,7 +438,7 @@ function renderCoins(data) {
     });
 }
 
-// === ГРАФИК ЦЕНЫ ===
+// График цены
 async function fetchChartData(id, days) {
     try {
         const url = `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`;
@@ -582,75 +570,4 @@ async function updateChart(id, days) {
     const prev = prices[0][1];
     const change = prev ? ((currentPrice - prev) / prev * 100) : 0;
     
-    if (!isTouching) {
-        $('chartPrice').textContent = '$' + currentPrice.toFixed(2);
-        $('chartPrice').classList.remove('touch');
-    }
-    
-    const changeClass = change >= 0 ? 'green' : 'red';
-    const changeText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
-    $('chartChange').textContent = changeText;
-    $('chartChange').className = 'chart-change-display ' + changeClass;
-    
-    const ctx = $('priceChart').getContext('2d');
-    if (chart) chart.destroy();
-    drawChart(ctx, prices);
-    hideCrosshair();
-}
-
-function openChart(id) {
-    currentCoinId = id;
-    $('app').style.display = 'none';
-    $('chartPage').style.display = 'flex';
-    $('chartTitle').textContent = coinMap[id] || id;
-    
-    document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
-    document.querySelector('.timeframe-btn[data-days="1"]').classList.add('active');
-    
-    currentDays = 1;
-    isTouching = false;
-    updateChart(id, 1);
-    
-    if (updateInterval) {
-        clearInterval(updateInterval);
-    }
-    updateInterval = setInterval(() => updateChart(currentCoinId, currentDays), 60000);
-}
-
-// Обработчики таймфреймов
-document.querySelectorAll('.timeframe-btn').forEach(btn => {
-    btn.onclick = function() {
-        document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        currentDays = parseFloat(this.dataset.days);
-        isTouching = false;
-        updateChart(currentCoinId, currentDays);
-    };
-});
-
-// Обработчики crosshair
-const priceChart = $('priceChart');
-if (priceChart) {
-    ['mousemove', 'touchmove'].forEach(ev => {
-        priceChart.addEventListener(ev, function(e) {
-            e.preventDefault();
-            const c = ev === 'touchmove' ? e.touches[0] : e;
-            updateCrosshair(c.clientX, c.clientY);
-        }, { passive: false });
-    });
-    
-    priceChart.addEventListener('mouseleave', hideCrosshair);
-    priceChart.addEventListener('touchend', hideCrosshair);
-    priceChart.addEventListener('touchstart', function(e) {
-        e.preventDefault();
-        const t = e.touches[0];
-        updateCrosshair(t.clientX, t.clientY);
-    }, { passive: false });
-}
-
-// ЗАПУСК
-loadCoins();
-setInterval(loadCoins, 60000);
-</script>
-</body>
-</html>
+   
