@@ -386,7 +386,6 @@ function drawETFChart(containerId, data, color, statsId) {
                         },
                         font: { size: 8 }
                     },
-                    // Горизонтальная линия на 0
                     zeroLineColor: 'rgba(255,255,255,0.5)',
                     zeroLineWidth: 2,
                     zeroLineBorderDash: [4, 4]
@@ -398,7 +397,6 @@ function drawETFChart(containerId, data, color, statsId) {
             }
         },
         plugins: [{
-            // Плагин для рисования горизонтальной линии на 0
             afterDraw: function(chart) {
                 const yScale = chart.scales.y;
                 const xScale = chart.scales.x;
@@ -415,7 +413,6 @@ function drawETFChart(containerId, data, color, statsId) {
                 ctx.stroke();
                 ctx.restore();
                 
-                // Подпись "0"
                 ctx.save();
                 ctx.fillStyle = 'rgba(255,255,255,0.3)';
                 ctx.font = '8px Arial';
@@ -533,16 +530,19 @@ function updateCrosshair(x, y) {
         return;
     }
 
-    const price = window._vals[idx];
+    // Получаем позицию canvas относительно chartContainer
     const containerRect = $('chartContainer').getBoundingClientRect();
-    const topOffset = containerRect.top;
-    const leftOffset = containerRect.left;
+    const canvasRect2 = canvas.getBoundingClientRect();
+    
+    // Корректируем позицию с учетом смещения canvas внутри container
+    const offsetX = canvasRect2.left - containerRect.left;
+    const offsetY = canvasRect2.top - containerRect.top;
 
-    $('crosshairH').style.cssText = `display:block;left:0;width:100%;top:${yPos - topOffset}px;`;
-    $('crosshairV').style.cssText = `display:block;top:0;height:100%;left:${xPos - leftOffset}px;`;
-    $('crosshairLabel').style.cssText = `display:block;left:${xPos - leftOffset + 10}px;top:${yPos - topOffset - 10}px;`;
-    $('crosshairLabel').textContent = '$'+price.toFixed(2);
-    $('chartPriceDisplay').textContent = '$'+price.toFixed(2);
+    $('crosshairH').style.cssText = `display:block;left:0;width:100%;top:${offsetY + yPos}px;`;
+    $('crosshairV').style.cssText = `display:block;top:0;height:100%;left:${offsetX + xPos}px;`;
+    $('crosshairLabel').style.cssText = `display:block;left:${offsetX + xPos + 10}px;top:${offsetY + yPos - 10}px;`;
+    $('crosshairLabel').textContent = '$'+window._vals[idx].toFixed(2);
+    $('chartPriceDisplay').textContent = '$'+window._vals[idx].toFixed(2);
     $('chartPriceDisplay').classList.add('touch');
     isTouching = true;
 }
@@ -601,6 +601,7 @@ document.querySelectorAll('.timeframe-btn').forEach(btn => {
     };
 });
 
+// Обработчики событий для крестика
 ['mousemove','touchmove'].forEach(ev => {
     const chartEl = $('priceChart');
     if (chartEl) {
@@ -622,6 +623,13 @@ if (chartEl) {
         updateCrosshair(t.clientX, t.clientY);
     }, { passive: false });
 }
+
+// Обновляем позицию крестика при ресайзе
+window.addEventListener('resize', function() {
+    if (isTouching) {
+        hideCrosshair();
+    }
+});
 
 const coins = [
     { id:'bitcoin', name:'Bitcoin', symbol:'btc', icon:'₿' },
@@ -675,4 +683,4 @@ loadCoins();
 setInterval(loadCoins, 60000);
 </script>
 </body>
-</html> 
+</html>
