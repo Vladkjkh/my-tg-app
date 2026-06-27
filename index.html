@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+=<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -417,22 +417,10 @@
             <div class="indicator-subtitle">Притоки / Оттоки за 30 дней</div>
             <div class="indicator-chart-container"><canvas id="btcEtf"></canvas></div>
             <div class="indicator-stats">
-                <div class="indicator-stat">
-                    <div class="indicator-stat-label">Всего</div>
-                    <div class="indicator-stat-value" id="btcTotal">+$0.0M</div>
-                </div>
-                <div class="indicator-stat">
-                    <div class="indicator-stat-label">Средний</div>
-                    <div class="indicator-stat-value" id="btcAvg">$0.0M</div>
-                </div>
-                <div class="indicator-stat">
-                    <div class="indicator-stat-label">Макс приток</div>
-                    <div class="indicator-stat-value positive" id="btcMax">$0.0M</div>
-                </div>
-                <div class="indicator-stat">
-                    <div class="indicator-stat-label">Макс отток</div>
-                    <div class="indicator-stat-value negative" id="btcMin">$0.0M</div>
-                </div>
+                <div class="indicator-stat"><div class="indicator-stat-label">Всего</div><div class="indicator-stat-value" id="btcTotal">+$0.0M</div></div>
+                <div class="indicator-stat"><div class="indicator-stat-label">Средний</div><div class="indicator-stat-value" id="btcAvg">$0.0M</div></div>
+                <div class="indicator-stat"><div class="indicator-stat-label">Макс приток</div><div class="indicator-stat-value positive" id="btcMax">$0.0M</div></div>
+                <div class="indicator-stat"><div class="indicator-stat-label">Макс отток</div><div class="indicator-stat-value negative" id="btcMin">$0.0M</div></div>
             </div>
         </div>
         <div class="indicator-box">
@@ -440,22 +428,10 @@
             <div class="indicator-subtitle">Притоки / Оттоки за 30 дней</div>
             <div class="indicator-chart-container"><canvas id="ethEtf"></canvas></div>
             <div class="indicator-stats">
-                <div class="indicator-stat">
-                    <div class="indicator-stat-label">Всего</div>
-                    <div class="indicator-stat-value" id="ethTotal">+$0.0M</div>
-                </div>
-                <div class="indicator-stat">
-                    <div class="indicator-stat-label">Средний</div>
-                    <div class="indicator-stat-value" id="ethAvg">$0.0M</div>
-                </div>
-                <div class="indicator-stat">
-                    <div class="indicator-stat-label">Макс приток</div>
-                    <div class="indicator-stat-value positive" id="ethMax">$0.0M</div>
-                </div>
-                <div class="indicator-stat">
-                    <div class="indicator-stat-label">Макс отток</div>
-                    <div class="indicator-stat-value negative" id="ethMin">$0.0M</div>
-                </div>
+                <div class="indicator-stat"><div class="indicator-stat-label">Всего</div><div class="indicator-stat-value" id="ethTotal">+$0.0M</div></div>
+                <div class="indicator-stat"><div class="indicator-stat-label">Средний</div><div class="indicator-stat-value" id="ethAvg">$0.0M</div></div>
+                <div class="indicator-stat"><div class="indicator-stat-label">Макс приток</div><div class="indicator-stat-value positive" id="ethMax">$0.0M</div></div>
+                <div class="indicator-stat"><div class="indicator-stat-label">Макс отток</div><div class="indicator-stat-value negative" id="ethMin">$0.0M</div></div>
             </div>
         </div>
     </div>
@@ -489,15 +465,13 @@
         tg.ready();
         tg.expand();
 
-        // --- Конфигурация ---
-        const SOSO_API_KEY = 'SOSO-8cfbe60c06bf4678a1965a440eb24de7';
-
         let chart = null;
         let currentCoinId = 'bitcoin';
         let currentDays = 1;
         let updateInterval = null;
         let currentPrice = 0;
         let isTouching = false;
+        let etfInstances = {};
 
         const coins = [
             { id: 'bitcoin', name: 'Bitcoin', symbol: 'btc', icon: '₿' },
@@ -512,11 +486,11 @@
         const coinMap = {};
         coins.forEach(c => coinMap[c.id] = c.name);
 
-        // --- Навигация ---
+        // Навигация
         $('mainBtn').onclick = function() {
             $('app').style.display = 'none';
             $('indicatorsPage').style.display = 'flex';
-            loadETFData();
+            initETFs();
         };
 
         $('backInd').onclick = function() {
@@ -533,66 +507,70 @@
             $('app').style.display = 'flex';
         };
 
-        // --- Работа с ETF (SoSoValue API) ---
-        let etfInstances = {};
+        // ==================== ETF API (SoSoValue) ====================
+        const SOSO_API_KEY = 'SOSO-8cfbe60c06bf4678a1965a440eb24de7';
 
-        async function fetchETFData(symbol) {
-            // symbol: 'BTC' или 'ETH'
+        function processETFData(rawData) {
+            if (!rawData || !rawData.data || !rawData.data.flow || rawData.data.flow.length === 0) {
+                return [];
+            }
+            const flow = rawData.data.flow.slice(-30);
+            return flow.map(item => {
+                return item.value || 0;
+            });
+        }
+
+        async function fetchETFData(coin) {
             try {
-                const url =
-                    `https://api.sosovalue.com/api/v2/asset/etf/flow?symbol=${symbol}&interval=day&limit=30`;
-                const response = await fetch(url, {
-                    headers: {
-                        'x-api-key': SOSO_API_KEY
-                    }
-                });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const url = `https://api.sosovalue.com/v1/etf/flow?symbol=${coin}&apikey=${SOSO_API_KEY}`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
                 return data;
             } catch (e) {
-                console.error('ETF fetch error:', e);
+                console.error(`Error fetching ETF data for ${coin}:`, e);
                 return null;
             }
         }
 
-        async function loadETFData() {
+        async function initETFs() {
+            ['btcTotal', 'btcAvg', 'btcMax', 'btcMin', 'ethTotal', 'ethAvg', 'ethMax', 'ethMin'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = '...';
+            });
+
             const btcData = await fetchETFData('BTC');
             const ethData = await fetchETFData('ETH');
 
-            if (btcData && btcData.data && btcData.data.length > 0) {
-                const flows = btcData.data.map(item => parseFloat(item.flow_usd) / 1e6); // в млн $
-                drawETFChart('btcEtf', flows, '#f7931a', 'btc');
-                updateStats('btc', flows);
-            } else {
-                // fallback на случай ошибки
-                const fallback = generateFallbackData();
-                drawETFChart('btcEtf', fallback, '#f7931a', 'btc');
-                updateStats('btc', fallback);
-            }
+            const btcValues = processETFData(btcData);
+            const ethValues = processETFData(ethData);
 
-            if (ethData && ethData.data && ethData.data.length > 0) {
-                const flows = ethData.data.map(item => parseFloat(item.flow_usd) / 1e6);
-                drawETFChart('ethEtf', flows, '#627eea', 'eth');
-                updateStats('eth', flows);
-            } else {
-                const fallback = generateFallbackData();
-                drawETFChart('ethEtf', fallback, '#627eea', 'eth');
-                updateStats('eth', fallback);
-            }
+            const finalBtc = btcValues.length > 0 ? btcValues : generateFallbackData(30);
+            const finalEth = ethValues.length > 0 ? ethValues : generateFallbackData(30);
+
+            drawETFChart('btcEtf', finalBtc, '#f7931a', 'btc');
+            drawETFChart('ethEtf', finalEth, '#627eea', 'eth');
         }
 
-        function generateFallbackData() {
+        function generateFallbackData(days) {
             const data = [];
             let value = 0;
-            for (let i = 0; i < 30; i++) {
+            for (let i = 0; i < days; i++) {
                 value = Math.max(-100, Math.min(100, value + (Math.random() - 0.5) * 80));
                 data.push(Math.round(value * 10) / 10);
             }
             return data;
         }
 
-        function updateStats(prefix, data) {
-            if (!data || data.length === 0) return;
+        function drawETFChart(canvasId, data, color, prefix) {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            if (etfInstances[canvasId]) {
+                etfInstances[canvasId].destroy();
+                delete etfInstances[canvasId];
+            }
+
             const total = data.reduce((a, b) => a + b, 0);
             const avg = total / data.length;
             const max = Math.max(...data);
@@ -606,21 +584,10 @@
                 }
             };
 
-            updateStat(prefix + 'Total', (total >= 0 ? '+' : '') + total.toFixed(1) + 'M', total >= 0 ? 'positive' :
-            'negative');
+            updateStat(prefix + 'Total', (total >= 0 ? '+' : '') + total.toFixed(1) + 'M', total >= 0 ? 'positive' : 'negative');
             updateStat(prefix + 'Avg', '$' + avg.toFixed(1) + 'M');
             updateStat(prefix + 'Max', '+$' + max.toFixed(1) + 'M', 'positive');
             updateStat(prefix + 'Min', '-$' + Math.abs(min).toFixed(1) + 'M', 'negative');
-        }
-
-        function drawETFChart(canvasId, data, color, prefix) {
-            const ctx = document.getElementById(canvasId);
-            if (!ctx) return;
-
-            if (etfInstances[canvasId]) {
-                etfInstances[canvasId].destroy();
-                delete etfInstances[canvasId];
-            }
 
             const barColors = data.map(v => v >= 0 ? color : '#f44336');
 
@@ -695,7 +662,7 @@
             });
         }
 
-        // --- Загрузка данных монет (CoinGecko) ---
+        // ==================== Загрузка цен монет ====================
         let cache = null;
 
         async function loadCoins() {
@@ -751,15 +718,15 @@
                 }
 
                 div.innerHTML = `
-                            <span class="coin-number">${index + 1}</span>
-                            <div class="coin-icon ${coin.symbol}">${coin.icon}</div>
-                            <div class="coin-info">
-                                <div class="coin-name">${coin.name}</div>
-                                <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
-                            </div>
-                            ${priceHtml}
-                            ${changeHtml}
-                        `;
+                    <span class="coin-number">${index + 1}</span>
+                    <div class="coin-icon ${coin.symbol}">${coin.icon}</div>
+                    <div class="coin-info">
+                        <div class="coin-name">${coin.name}</div>
+                        <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
+                    </div>
+                    ${priceHtml}
+                    ${changeHtml}
+                `;
 
                 div.onclick = function() {
                     openChart(coin.id);
@@ -769,11 +736,10 @@
             });
         }
 
-        // --- График цены (CoinGecko) ---
+        // ==================== График цены ====================
         async function fetchChartData(id, days) {
             try {
-                const url =
-                    `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`;
+                const url = `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`;
                 const response = await fetch(url);
                 if (!response.ok) throw new Error('Network response was not ok');
                 const data = await response.json();
@@ -872,12 +838,9 @@
 
             const containerRect = $('chartContainer').getBoundingClientRect();
 
-            $('chH').style.cssText =
-            `display:block;left:0;width:100%;top:${yPos - containerRect.top}px;`;
-            $('chV').style.cssText =
-            `display:block;top:0;height:100%;left:${xPos - containerRect.left}px;`;
-            $('chL').style.cssText =
-            `display:block;left:${xPos - containerRect.left + 10}px;top:${yPos - containerRect.top - 10}px;`;
+            $('chH').style.cssText = `display:block;left:0;width:100%;top:${yPos - containerRect.top}px;`;
+            $('chV').style.cssText = `display:block;top:0;height:100%;left:${xPos - containerRect.left}px;`;
+            $('chL').style.cssText = `display:block;left:${xPos - containerRect.left + 10}px;top:${yPos - containerRect.top - 10}px;`;
             $('chL').textContent = '$' + window._vals[idx].toFixed(2);
             $('chartPrice').textContent = '$' + window._vals[idx].toFixed(2);
             $('chartPrice').classList.add('touch');
@@ -940,7 +903,7 @@
             updateInterval = setInterval(() => updateChart(currentCoinId, currentDays), 60000);
         }
 
-        // --- Обработчики таймфреймов ---
+        // Обработчики таймфреймов
         document.querySelectorAll('.timeframe-btn').forEach(btn => {
             btn.onclick = function() {
                 document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
@@ -951,8 +914,41 @@
             };
         });
 
-        // --- Обработчики crosshair ---
+        // ==================== Обработчики crosshair ====================
         const priceChart = $('priceChart');
         if (priceChart) {
-            ['mousemove', 'touchmove'].forEach(ev => {
-                priceChart.addEventListener(ev, function(e)
+            priceChart.addEventListener('mousemove', function(e) {
+                updateCrosshair(e.clientX, e.clientY);
+            });
+
+            priceChart.addEventListener('mouseleave', function() {
+                hideCrosshair();
+            });
+
+            priceChart.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                const t = e.touches[0];
+                if (t) {
+                    updateCrosshair(t.clientX, t.clientY);
+                }
+            }, { passive: false });
+
+            priceChart.addEventListener('touchmove', function(e) {
+                e.preventDefault();
+                const t = e.touches[0];
+                if (t) {
+                    updateCrosshair(t.clientX, t.clientY);
+                }
+            }, { passive: false });
+
+            priceChart.addEventListener('touchend', function() {
+                hideCrosshair();
+            });
+        }
+
+        // ==================== Запуск ====================
+        loadCoins();
+        setInterval(loadCoins, 60000);
+    </script>
+</body>
+</html>
