@@ -67,6 +67,7 @@
         }
         #indicatorsPage .back-btn:active { transform:scale(0.95); opacity:0.7; }
 
+        /* Стили для индикаторов */
         .indicator-box {
             width: 100%;
             max-width: 600px;
@@ -172,6 +173,7 @@
 <div id="indicatorsPage">
     <button class="back-btn" id="backFromIndicators">←</button>
     
+    <!-- BTC ETF - Оранжевый -->
     <div class="indicator-box">
         <div class="indicator-title">₿ Bitcoin ETF</div>
         <div class="indicator-subtitle">Притоки / Оттоки за 30 дней</div>
@@ -198,6 +200,7 @@
         </div>
     </div>
 
+    <!-- ETH ETF - Синий -->
     <div class="indicator-box">
         <div class="indicator-title">⟠ Ethereum ETF</div>
         <div class="indicator-subtitle">Притоки / Оттоки за 30 дней</div>
@@ -258,7 +261,7 @@ const $ = id => document.getElementById(id);
 $('mainBtn').onclick = function() { 
     $('appContainer').style.display = 'none'; 
     $('indicatorsPage').style.display = 'flex'; 
-    setTimeout(initAllETFs, 200);
+    setTimeout(initAllETFs, 100);
 };
 
 $('backFromIndicators').onclick = function() { 
@@ -277,6 +280,7 @@ const etfCharts = {};
 
 const coinMap = { 'bitcoin':'Bitcoin', 'ethereum':'Ethereum', 'binancecoin':'BNB', 'ripple':'XRP', 'solana':'Solana', 'tron':'TRX', 'hyperliquid':'Hype' };
 
+// Генерация данных с притоками и оттоками
 function generateETFData(days = 30) {
     const data = [];
     let value = 0;
@@ -288,6 +292,7 @@ function generateETFData(days = 30) {
     return data;
 }
 
+// Создание столбчатой диаграммы ETF
 function drawETFChart(containerId, data, color, statsId) {
     const ctx = document.getElementById(containerId);
     if (!ctx) return;
@@ -299,18 +304,13 @@ function drawETFChart(containerId, data, color, statsId) {
         delete etfCharts[containerId];
     }
     
-    const today = new Date();
-    const labels = data.map((_, i) => {
-        const date = new Date(today);
-        date.setDate(date.getDate() - (data.length - 1 - i));
-        return date.getDate() + '.' + (date.getMonth() + 1);
-    });
-    
+    const labels = data.map((_, i) => `${i+1}`);
     const total = data.reduce((a, b) => a + b, 0);
     const avg = total / data.length;
     const max = Math.max(...data);
     const min = Math.min(...data);
     
+    // Обновляем статистику
     const totalEl = document.getElementById(statsId + 'Total');
     const avgEl = document.getElementById(statsId + 'Avg');
     const maxEl = document.getElementById(statsId + 'Max');
@@ -330,6 +330,7 @@ function drawETFChart(containerId, data, color, statsId) {
         minEl.className = 'indicator-stat-value negative';
     }
     
+    // Цвета для столбцов (выше нуля - зеленый/оранжевый, ниже - красный)
     const barColors = data.map(v => v >= 0 ? color : '#f44336');
     
     etfCharts[containerId] = new Chart(context, {
@@ -370,9 +371,7 @@ function drawETFChart(containerId, data, color, statsId) {
                     ticks: { 
                         color: 'rgba(255,255,255,0.2)', 
                         maxTicksLimit: 10,
-                        font: { size: 7 },
-                        maxRotation: 45,
-                        minRotation: 45
+                        font: { size: 7 }
                     }
                 },
                 y: {
@@ -386,7 +385,11 @@ function drawETFChart(containerId, data, color, statsId) {
                             return (value >= 0 ? '+' : '') + value + 'M'; 
                         },
                         font: { size: 8 }
-                    }
+                    },
+                    // Горизонтальная линия на 0
+                    zeroLineColor: 'rgba(255,255,255,0.5)',
+                    zeroLineWidth: 2,
+                    zeroLineBorderDash: [4, 4]
                 }
             },
             interaction: {
@@ -395,35 +398,36 @@ function drawETFChart(containerId, data, color, statsId) {
             }
         },
         plugins: [{
+            // Плагин для рисования горизонтальной линии на 0
             afterDraw: function(chart) {
                 const yScale = chart.scales.y;
                 const xScale = chart.scales.x;
                 const ctx = chart.ctx;
                 const zeroY = yScale.getPixelForValue(0);
                 
-                if (zeroY >= yScale.top && zeroY <= yScale.bottom) {
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-                    ctx.lineWidth = 1.5;
-                    ctx.setLineDash([4, 4]);
-                    ctx.moveTo(xScale.left, zeroY);
-                    ctx.lineTo(xScale.right, zeroY);
-                    ctx.stroke();
-                    ctx.restore();
-                    
-                    ctx.save();
-                    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-                    ctx.font = '8px Arial';
-                    ctx.textAlign = 'left';
-                    ctx.fillText('0', xScale.right + 2, zeroY + 3);
-                    ctx.restore();
-                }
+                ctx.save();
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 4]);
+                ctx.moveTo(xScale.left, zeroY);
+                ctx.lineTo(xScale.right, zeroY);
+                ctx.stroke();
+                ctx.restore();
+                
+                // Подпись "0"
+                ctx.save();
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                ctx.font = '8px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText('0', xScale.right + 2, zeroY + 3);
+                ctx.restore();
             }
         }]
     });
 }
 
+// Инициализация всех ETF графиков
 function initAllETFs() {
     const btcData = generateETFData(30);
     const ethData = generateETFData(30);
