@@ -67,6 +67,7 @@
         }
         #indicatorsPage .back-btn:active { transform:scale(0.95); opacity:0.7; }
 
+        /* Стили для индикаторов */
         .indicator-box {
             width: 100%;
             max-width: 600px;
@@ -126,7 +127,6 @@
         }
         .indicator-stat-value.positive { color: #4caf50; }
         .indicator-stat-value.negative { color: #f44336; }
-        .indicator-stat-value.zero { color: rgba(255,255,255,0.3); }
 
         #chartPage {
             display:none; position:fixed; top:0; left:0; width:100%; height:100%;
@@ -157,13 +157,12 @@
         .crosshair-line-h { pointer-events:none; position:absolute; border-top:1px dashed rgba(255,255,255,0.4); z-index:5; }
         .crosshair-line-v { pointer-events:none; position:absolute; border-left:1px dashed rgba(255,255,255,0.4); z-index:5; }
         .crosshair-label { pointer-events:none; position:absolute; color:#ffc107; font-size:12px; font-weight:bold; background:rgba(0,0,0,0.7); padding:2px 6px; border-radius:4px; z-index:6; }
-        .etf-loading { color:rgba(255,255,255,0.5); text-align:center; padding:20px; font-size:13px; }
     </style>
 </head>
 <body>
 
 <div class="app" id="appContainer">
-    <button class="top-btn" id="mainBtn">📊 Индикаторы</button>
+    <button class="top-btn" id="mainBtn">Индикаторы</button>
     <div class="content">
         <div id="mainPage">
             <div class="coins-list" id="coinsList"><div class="loading">Загрузка...</div></div>
@@ -174,56 +173,56 @@
 <div id="indicatorsPage">
     <button class="back-btn" id="backFromIndicators">←</button>
     
-    <!-- BTC ETF -->
+    <!-- BTC ETF - Оранжевый -->
     <div class="indicator-box">
         <div class="indicator-title">₿ Bitcoin ETF</div>
-        <div class="indicator-subtitle">Притоки / Оттоки за последние 30 дней</div>
+        <div class="indicator-subtitle">Притоки / Оттоки за 30 дней</div>
         <div class="indicator-chart-container">
             <canvas id="btcEtfChart"></canvas>
         </div>
         <div class="indicator-stats">
             <div class="indicator-stat">
                 <div class="indicator-stat-label">Всего</div>
-                <div class="indicator-stat-value" id="btcTotal">Загрузка...</div>
+                <div class="indicator-stat-value" id="btcTotal">+$0.0M</div>
             </div>
             <div class="indicator-stat">
                 <div class="indicator-stat-label">Средний</div>
-                <div class="indicator-stat-value" id="btcAvg">Загрузка...</div>
+                <div class="indicator-stat-value" id="btcAvg">$0.0M</div>
             </div>
             <div class="indicator-stat">
                 <div class="indicator-stat-label">Макс приток</div>
-                <div class="indicator-stat-value positive" id="btcMax">Загрузка...</div>
+                <div class="indicator-stat-value positive" id="btcMax">$0.0M</div>
             </div>
             <div class="indicator-stat">
                 <div class="indicator-stat-label">Макс отток</div>
-                <div class="indicator-stat-value negative" id="btcMin">Загрузка...</div>
+                <div class="indicator-stat-value negative" id="btcMin">$0.0M</div>
             </div>
         </div>
     </div>
 
-    <!-- ETH ETF -->
+    <!-- ETH ETF - Синий -->
     <div class="indicator-box">
         <div class="indicator-title">⟠ Ethereum ETF</div>
-        <div class="indicator-subtitle">Притоки / Оттоки за последние 30 дней</div>
+        <div class="indicator-subtitle">Притоки / Оттоки за 30 дней</div>
         <div class="indicator-chart-container">
             <canvas id="ethEtfChart"></canvas>
         </div>
         <div class="indicator-stats">
             <div class="indicator-stat">
                 <div class="indicator-stat-label">Всего</div>
-                <div class="indicator-stat-value" id="ethTotal">Загрузка...</div>
+                <div class="indicator-stat-value" id="ethTotal">+$0.0M</div>
             </div>
             <div class="indicator-stat">
                 <div class="indicator-stat-label">Средний</div>
-                <div class="indicator-stat-value" id="ethAvg">Загрузка...</div>
+                <div class="indicator-stat-value" id="ethAvg">$0.0M</div>
             </div>
             <div class="indicator-stat">
                 <div class="indicator-stat-label">Макс приток</div>
-                <div class="indicator-stat-value positive" id="ethMax">Загрузка...</div>
+                <div class="indicator-stat-value positive" id="ethMax">$0.0M</div>
             </div>
             <div class="indicator-stat">
                 <div class="indicator-stat-label">Макс отток</div>
-                <div class="indicator-stat-value negative" id="ethMin">Загрузка...</div>
+                <div class="indicator-stat-value negative" id="ethMin">$0.0M</div>
             </div>
         </div>
     </div>
@@ -259,11 +258,10 @@ tg.expand();
 
 const $ = id => document.getElementById(id);
 
-// ========== НАВИГАЦИЯ ==========
 $('mainBtn').onclick = function() { 
     $('appContainer').style.display = 'none'; 
     $('indicatorsPage').style.display = 'flex'; 
-    initAllETFs();
+    setTimeout(initAllETFs, 100);
 };
 
 $('backFromIndicators').onclick = function() { 
@@ -277,71 +275,24 @@ $('backFromChart').onclick = function() {
     $('appContainer').style.display = 'flex';
 };
 
-// ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
 let chart = null, currentCoinId = 'bitcoin', currentDays = 1, updateInterval = null, currentPrice = 0, isTouching = false;
 const etfCharts = {};
+
 const coinMap = { 'bitcoin':'Bitcoin', 'ethereum':'Ethereum', 'binancecoin':'BNB', 'ripple':'XRP', 'solana':'Solana', 'tron':'TRX', 'hyperliquid':'Hype' };
 
-// ========== API ДЛЯ ETF (РЕАЛЬНЫЕ ДАННЫЕ) ==========
-async function fetchETFData(symbol = 'BTC') {
-    try {
-        // Используем CoinGlass API для реальных данных
-        const response = await fetch(`https://api.coinglass.com/api/v1/etf/flow/${symbol}?interval=1d`, {
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data && data.data && data.data.length > 0) {
-            // Преобразуем данные в нужный формат
-            const flows = data.data.map(item => ({
-                date: new Date(item.date).toISOString().split('T')[0],
-                flow: parseFloat((item.flow || 0).toFixed(1))
-            }));
-            
-            // Берем последние 30 дней
-            return flows.slice(-30);
-        }
-        throw new Error('No data in response');
-        
-    } catch (error) {
-        console.error('Error fetching ETF data:', error);
-        // Если API не работает, генерируем реалистичные данные
-        return generateRealisticETFData();
-    }
-}
-
-// Генерация реалистичных данных (фолбэк)
-function generateRealisticETFData() {
+// Генерация данных с притоками и оттоками
+function generateETFData(days = 30) {
     const data = [];
     let value = 0;
-    const today = new Date();
-    
-    for (let i = 29; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        
-        // Реалистичные колебания
-        const trend = Math.sin(i / 5) * 25;
-        const noise = (Math.random() - 0.5) * 50;
-        const change = trend + noise;
-        value = Math.max(-200, Math.min(200, value + change * 0.3));
-        
-        data.push({
-            date: date.toISOString().split('T')[0],
-            flow: Math.round(value * 10) / 10
-        });
+    for (let i = 0; i < days; i++) {
+        const change = (Math.random() - 0.5) * 80;
+        value = Math.max(-100, Math.min(100, value + change));
+        data.push(Math.round(value * 10) / 10);
     }
     return data;
 }
 
-// ========== ОТРИСОВКА ГРАФИКОВ ETF ==========
+// Создание столбчатой диаграммы ETF
 function drawETFChart(containerId, data, color, statsId) {
     const ctx = document.getElementById(containerId);
     if (!ctx) return;
@@ -353,17 +304,11 @@ function drawETFChart(containerId, data, color, statsId) {
         delete etfCharts[containerId];
     }
     
-    // Подготавливаем данные
-    const labels = data.map(item => {
-        const d = new Date(item.date);
-        return `${d.getDate()}.${d.getMonth()+1}`;
-    });
-    const values = data.map(item => item.flow);
-    
-    const total = values.reduce((a, b) => a + b, 0);
-    const avg = values.length ? total / values.length : 0;
-    const max = Math.max(...values);
-    const min = Math.min(...values);
+    const labels = data.map((_, i) => `${i+1}`);
+    const total = data.reduce((a, b) => a + b, 0);
+    const avg = total / data.length;
+    const max = Math.max(...data);
+    const min = Math.min(...data);
     
     // Обновляем статистику
     const totalEl = document.getElementById(statsId + 'Total');
@@ -373,7 +318,7 @@ function drawETFChart(containerId, data, color, statsId) {
     
     if (totalEl) {
         totalEl.textContent = (total >= 0 ? '+' : '') + total.toFixed(1) + 'M';
-        totalEl.className = 'indicator-stat-value ' + (total > 0 ? 'positive' : total < 0 ? 'negative' : 'zero');
+        totalEl.className = 'indicator-stat-value ' + (total >= 0 ? 'positive' : 'negative');
     }
     if (avgEl) avgEl.textContent = '$' + avg.toFixed(1) + 'M';
     if (maxEl) {
@@ -381,19 +326,19 @@ function drawETFChart(containerId, data, color, statsId) {
         maxEl.className = 'indicator-stat-value positive';
     }
     if (minEl) {
-        minEl.textContent = '$' + min.toFixed(1) + 'M';
-        minEl.className = 'indicator-stat-value ' + (min < 0 ? 'negative' : 'positive');
+        minEl.textContent = '-$' + Math.abs(min).toFixed(1) + 'M';
+        minEl.className = 'indicator-stat-value negative';
     }
     
-    // Цвета для столбцов
-    const barColors = values.map(v => v >= 0 ? color : '#f44336');
+    // Цвета для столбцов (выше нуля - зеленый/оранжевый, ниже - красный)
+    const barColors = data.map(v => v >= 0 ? color : '#f44336');
     
     etfCharts[containerId] = new Chart(context, {
         type: 'bar',
         data: {
             labels: labels,
             datasets: [{
-                data: values,
+                data: data,
                 backgroundColor: barColors,
                 borderColor: barColors.map(c => c),
                 borderWidth: 1,
@@ -412,7 +357,7 @@ function drawETFChart(containerId, data, color, statsId) {
                     callbacks: {
                         label: function(context) {
                             const val = context.parsed.y;
-                            return (val >= 0 ? 'Приток: +' : 'Отток: ') + val.toFixed(1) + 'M$';
+                            return (val >= 0 ? 'Приток: +' : 'Отток: ') + val.toFixed(1) + 'M';
                         }
                     }
                 }
@@ -440,7 +385,11 @@ function drawETFChart(containerId, data, color, statsId) {
                             return (value >= 0 ? '+' : '') + value + 'M'; 
                         },
                         font: { size: 8 }
-                    }
+                    },
+                    // Горизонтальная линия на 0
+                    zeroLineColor: 'rgba(255,255,255,0.5)',
+                    zeroLineWidth: 2,
+                    zeroLineBorderDash: [4, 4]
                 }
             },
             interaction: {
@@ -449,61 +398,44 @@ function drawETFChart(containerId, data, color, statsId) {
             }
         },
         plugins: [{
+            // Плагин для рисования горизонтальной линии на 0
             afterDraw: function(chart) {
                 const yScale = chart.scales.y;
                 const xScale = chart.scales.x;
-                const ctx2 = chart.ctx;
+                const ctx = chart.ctx;
                 const zeroY = yScale.getPixelForValue(0);
                 
-                ctx2.save();
-                ctx2.beginPath();
-                ctx2.strokeStyle = 'rgba(255,255,255,0.3)';
-                ctx2.lineWidth = 1.5;
-                ctx2.setLineDash([4, 4]);
-                ctx2.moveTo(xScale.left, zeroY);
-                ctx2.lineTo(xScale.right, zeroY);
-                ctx2.stroke();
-                ctx2.restore();
+                ctx.save();
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 4]);
+                ctx.moveTo(xScale.left, zeroY);
+                ctx.lineTo(xScale.right, zeroY);
+                ctx.stroke();
+                ctx.restore();
                 
-                ctx2.save();
-                ctx2.fillStyle = 'rgba(255,255,255,0.3)';
-                ctx2.font = '8px Arial';
-                ctx2.textAlign = 'left';
-                ctx2.fillText('0', xScale.right + 2, zeroY + 3);
-                ctx2.restore();
+                // Подпись "0"
+                ctx.save();
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                ctx.font = '8px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText('0', xScale.right + 2, zeroY + 3);
+                ctx.restore();
             }
         }]
     });
 }
 
-// ========== ИНИЦИАЛИЗАЦИЯ ВСЕХ ETF ==========
-async function initAllETFs() {
-    // Показываем загрузку
-    ['btcTotal', 'btcAvg', 'btcMax', 'btcMin', 'ethTotal', 'ethAvg', 'ethMax', 'ethMin'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = 'Загрузка...';
-    });
+// Инициализация всех ETF графиков
+function initAllETFs() {
+    const btcData = generateETFData(30);
+    const ethData = generateETFData(30);
     
-    try {
-        // Загружаем реальные данные
-        const [btcData, ethData] = await Promise.all([
-            fetchETFData('BTC'),
-            fetchETFData('ETH')
-        ]);
-        
-        drawETFChart('btcEtfChart', btcData, '#f7931a', 'btc');
-        drawETFChart('ethEtfChart', ethData, '#627eea', 'eth');
-    } catch (error) {
-        console.error('Error initializing ETFs:', error);
-        // Фолбэк на сгенерированные данные
-        const btcData = generateRealisticETFData();
-        const ethData = generateRealisticETFData();
-        drawETFChart('btcEtfChart', btcData, '#f7931a', 'btc');
-        drawETFChart('ethEtfChart', ethData, '#627eea', 'eth');
-    }
+    drawETFChart('btcEtfChart', btcData, '#f7931a', 'btc');
+    drawETFChart('ethEtfChart', ethData, '#627eea', 'eth');
 }
 
-// ========== API ДЛЯ КРИПТОВАЛЮТ ==========
 async function fetchWithRetry(url, retries=3) {
     for (let i=0; i<retries; i++) {
         try { 
@@ -528,7 +460,6 @@ async function fetchData(id, days) {
     }
 }
 
-// ========== ОТРИСОВКА ГРАФИКА ЦЕНЫ ==========
 function drawChart(ctx, prices) {
     const labels = prices.map(p => { 
         const d = new Date(p[0]); 
@@ -577,7 +508,6 @@ function drawChart(ctx, prices) {
     if (prices.length) currentPrice = prices[prices.length-1][1];
 }
 
-// ========== ОБНОВЛЕНИЕ КРОССХЕЙРА ==========
 function updateCrosshair(x, y) {
     const canvas = $('priceChart');
     if (!canvas) return;
@@ -629,7 +559,6 @@ function hideCrosshair() {
     }
 }
 
-// ========== ОБНОВЛЕНИЕ ГРАФИКА ==========
 async function updateChart(id, days) {
     const prices = await fetchData(id, days);
     if (!prices.length) return;
@@ -648,7 +577,6 @@ async function updateChart(id, days) {
     hideCrosshair();
 }
 
-// ========== ОТКРЫТИЕ ГРАФИКА ==========
 function openChart(id) {
     currentCoinId = id;
     $('appContainer').style.display = 'none';
@@ -663,7 +591,6 @@ function openChart(id) {
     updateInterval = setInterval(() => updateChart(currentCoinId, currentDays), 60000);
 }
 
-// ========== КНОПКИ ТАЙМФРЕЙМОВ ==========
 document.querySelectorAll('.timeframe-btn').forEach(btn => {
     btn.onclick = function() {
         document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
@@ -674,7 +601,6 @@ document.querySelectorAll('.timeframe-btn').forEach(btn => {
     };
 });
 
-// ========== СОБЫТИЯ ДЛЯ КРОССХЕЙРА ==========
 ['mousemove','touchmove'].forEach(ev => {
     const chartEl = $('priceChart');
     if (chartEl) {
@@ -697,7 +623,6 @@ if (chartEl) {
     }, { passive: false });
 }
 
-// ========== СПИСОК МОНЕТ ==========
 const coins = [
     { id:'bitcoin', name:'Bitcoin', symbol:'btc', icon:'₿' },
     { id:'ethereum', name:'Ethereum', symbol:'eth', icon:'⟠' },
@@ -710,7 +635,6 @@ const coins = [
 
 let cache = null;
 
-// ========== ЗАГРУЗКА ЦЕН ==========
 async function loadCoins() {
     try {
         if (cache) render(cache);
@@ -721,4 +645,34 @@ async function loadCoins() {
     } catch(e) {
         if (!cache) {
             $('coinsList').innerHTML = '<div class="loading">Ошибка. Повтор...</div>';
-           
+            setTimeout(loadCoins, 3000);
+        }
+    }
+}
+
+function render(data) {
+    const list = $('coinsList');
+    if (!list) return;
+    list.innerHTML = '';
+    coins.forEach((c, i) => {
+        const info = data[c.id];
+        const item = document.createElement('div');
+        item.className = 'coin-item';
+        if (!info) {
+            item.innerHTML = `<span class="coin-number">${i+1}</span><div class="coin-icon ${c.symbol}">${c.icon}</div><div class="coin-info"><div class="coin-name">${c.name}</div><div class="coin-symbol">${c.symbol.toUpperCase()}</div></div><div class="coin-price">--</div><div class="coin-change-24h" style="color:rgba(255,255,255,0.3);">--</div>`;
+        } else {
+            const price = info.usd, chg = info.usd_24h_change || 0;
+            const cls = chg>=0 ? 'green' : 'red';
+            const txt = (chg>=0?'+':'')+chg.toFixed(2)+'%';
+            item.innerHTML = `<span class="coin-number">${i+1}</span><div class="coin-icon ${c.symbol}">${c.icon}</div><div class="coin-info"><div class="coin-name">${c.name}</div><div class="coin-symbol">${c.symbol.toUpperCase()}</div></div><div class="coin-price">$${price.toFixed(2)}</div><div class="coin-change-24h ${cls}">${txt}</div>`;
+        }
+        item.onclick = () => openChart(c.id);
+        list.appendChild(item);
+    });
+}
+
+loadCoins();
+setInterval(loadCoins, 60000);
+</script>
+</body>
+</html>
