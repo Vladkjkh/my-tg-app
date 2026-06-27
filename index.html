@@ -570,4 +570,75 @@ async function updateChart(id, days) {
     const prev = prices[0][1];
     const change = prev ? ((currentPrice - prev) / prev * 100) : 0;
     
-   
+    if (!isTouching) {
+        $('chartPrice').textContent = '$' + currentPrice.toFixed(2);
+        $('chartPrice').classList.remove('touch');
+    }
+    
+    const changeClass = change >= 0 ? 'green' : 'red';
+    const changeText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+    $('chartChange').textContent = changeText;
+    $('chartChange').className = 'chart-change-display ' + changeClass;
+    
+    const ctx = $('priceChart').getContext('2d');
+    if (chart) chart.destroy();
+    drawChart(ctx, prices);
+    hideCrosshair();
+}
+
+function openChart(id) {
+    currentCoinId = id;
+    $('app').style.display = 'none';
+    $('chartPage').style.display = 'flex';
+    $('chartTitle').textContent = coinMap[id] || id;
+    
+    document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.timeframe-btn[data-days="1"]').classList.add('active');
+    
+    currentDays = 1;
+    isTouching = false;
+    updateChart(id, 1);
+    
+    if (updateInterval) {
+        clearInterval(updateInterval);
+    }
+    updateInterval = setInterval(() => updateChart(currentCoinId, currentDays), 60000);
+}
+
+// Обработчики таймфреймов
+document.querySelectorAll('.timeframe-btn').forEach(btn => {
+    btn.onclick = function() {
+        document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        currentDays = parseFloat(this.dataset.days);
+        isTouching = false;
+        updateChart(currentCoinId, currentDays);
+    };
+});
+
+// Обработчики crosshair
+const priceChart = $('priceChart');
+if (priceChart) {
+    ['mousemove', 'touchmove'].forEach(ev => {
+        priceChart.addEventListener(ev, function(e) {
+            e.preventDefault();
+            const c = ev === 'touchmove' ? e.touches[0] : e;
+            updateCrosshair(c.clientX, c.clientY);
+        }, { passive: false });
+    });
+    
+    priceChart.addEventListener('mouseleave', hideCrosshair);
+    priceChart.addEventListener('touchend', hideCrosshair);
+    priceChart.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        const t = e.touches[0];
+        updateCrosshair(t.clientX, t.clientY);
+    }, { passive: false });
+}
+
+// Запуск
+loadCoins();
+setInterval(loadCoins, 60000);
+</script>
+</body>
+</html>
