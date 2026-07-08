@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -56,29 +55,34 @@
 
         #indicatorsPage {
             display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-            background:#0a0e27; z-index:999; padding:20px; 
+            background:#0a0e27; z-index:999; padding:20px 20px 40px; 
             flex-direction: column;
             align-items: center;
             overflow-y: auto;
         }
         #indicatorsPage .back-btn {
-            position:absolute; top:16px; left:16px; z-index:10;
+            position:fixed; top:16px; left:16px; z-index:10;
             background:rgba(255,255,255,0.1); border:none; color:#fff; font-size:20px;
             padding:6px 14px; border-radius:20px; cursor:pointer;
         }
         #indicatorsPage .back-btn:active { transform:scale(0.95); opacity:0.7; }
 
-        /* Стили для индикаторов */
         .indicator-box {
             width: 100%;
             max-width: 600px;
-            margin: 80px 0 0 0;
             padding: 20px 15px 15px;
             background: linear-gradient(135deg, #1a1a3e, #0a0e27);
             border-radius: 16px;
             border: 2px solid rgba(255, 193, 7, 0.3);
             box-shadow: 0 8px 32px rgba(255, 193, 7, 0.15);
             margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+        .indicator-box:first-of-type {
+            margin-top: 70px;
+        }
+        .indicator-box:last-of-type {
+            margin-bottom: 30px;
         }
         .indicator-title {
             color: #ffc107;
@@ -128,6 +132,36 @@
         }
         .indicator-stat-value.positive { color: #4caf50; }
         .indicator-stat-value.negative { color: #f44336; }
+        .indicator-stat-value.neutral { color: #ffc107; }
+
+        .whale-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            padding: 10px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            margin-top: 5px;
+        }
+        .whale-score {
+            font-size: 32px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #ffc107, #ff9800);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            flex-shrink: 0;
+        }
+        .whale-label {
+            color: rgba(255,255,255,0.6);
+            font-size: 12px;
+            text-align: left;
+            line-height: 1.4;
+        }
+        .whale-label strong {
+            color: #fff;
+            -webkit-text-fill-color: #fff;
+        }
 
         #chartPage {
             display:none; position:fixed; top:0; left:0; width:100%; height:100%;
@@ -174,6 +208,63 @@
 <div id="indicatorsPage">
     <button class="back-btn" id="backFromIndicators">←</button>
     
+    <!-- BTC Price Chart -->
+    <div class="indicator-box">
+        <div class="indicator-title">₿ Bitcoin Price</div>
+        <div class="indicator-subtitle">Динамика цены за 30 дней</div>
+        <div class="indicator-chart-container">
+            <canvas id="btcPriceChart"></canvas>
+        </div>
+        <div class="indicator-stats">
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Текущая</div>
+                <div class="indicator-stat-value" id="btcPriceCurrent">$0</div>
+            </div>
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Минимум</div>
+                <div class="indicator-stat-value" id="btcPriceMin">$0</div>
+            </div>
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Максимум</div>
+                <div class="indicator-stat-value positive" id="btcPriceMax">$0</div>
+            </div>
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Изменение</div>
+                <div class="indicator-stat-value" id="btcPriceChange">+0%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Whale Activity Indicator -->
+    <div class="indicator-box">
+        <div class="indicator-title">🐋 Активность Китов</div>
+        <div class="indicator-subtitle">Накопление крупных держателей</div>
+        <div class="indicator-chart-container">
+            <canvas id="whaleChart"></canvas>
+        </div>
+        <div class="whale-indicator">
+            <div class="whale-score" id="whaleScore">72</div>
+            <div class="whale-label">
+                <strong id="whaleStatus">Активное накопление</strong><br>
+                <span id="whaleDetail">Крупные кошельки увеличивают позиции</span>
+            </div>
+        </div>
+        <div class="indicator-stats">
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Киты (1k+ BTC)</div>
+                <div class="indicator-stat-value" id="whaleCount">0</div>
+            </div>
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Накопление</div>
+                <div class="indicator-stat-value positive" id="whaleAccumulation">+0 BTC</div>
+            </div>
+            <div class="indicator-stat">
+                <div class="indicator-stat-label">Распределение</div>
+                <div class="indicator-stat-value negative" id="whaleDistribution">0 BTC</div>
+            </div>
+        </div>
+    </div>
+
     <!-- BTC ETF - Оранжевый -->
     <div class="indicator-box">
         <div class="indicator-title">₿ Bitcoin ETF</div>
@@ -262,7 +353,7 @@ const $ = id => document.getElementById(id);
 $('mainBtn').onclick = function() { 
     $('appContainer').style.display = 'none'; 
     $('indicatorsPage').style.display = 'flex'; 
-    setTimeout(initAllETFs, 100);
+    setTimeout(initIndicators, 100);
 };
 
 $('backFromIndicators').onclick = function() { 
@@ -278,6 +369,7 @@ $('backFromChart').onclick = function() {
 
 let chart = null, currentCoinId = 'bitcoin', currentDays = 1, updateInterval = null, currentPrice = 0, isTouching = false;
 const etfCharts = {};
+const indicatorCharts = {};
 
 const coinMap = { 'bitcoin':'Bitcoin', 'ethereum':'Ethereum', 'binancecoin':'BNB', 'ripple':'XRP', 'solana':'Solana', 'tron':'TRX', 'hyperliquid':'Hype' };
 
@@ -291,6 +383,196 @@ function generateETFData(days = 30) {
         data.push(Math.round(value * 10) / 10);
     }
     return data;
+}
+
+// Генерация данных для цены BTC
+function generateBTCPriceData(days = 30) {
+    const data = [];
+    let price = 40000 + Math.random() * 10000;
+    for (let i = 0; i < days; i++) {
+        const change = (Math.random() - 0.48) * 800;
+        price = Math.max(30000, Math.min(70000, price + change));
+        data.push(Math.round(price * 100) / 100);
+    }
+    return data;
+}
+
+// Генерация данных для китов
+function generateWhaleData(days = 30) {
+    const data = [];
+    let accumulation = 50 + Math.random() * 30;
+    for (let i = 0; i < days; i++) {
+        const change = (Math.random() - 0.45) * 15;
+        accumulation = Math.max(10, Math.min(95, accumulation + change));
+        data.push(Math.round(accumulation * 10) / 10);
+    }
+    return data;
+}
+
+// Создание графика цены BTC
+function drawBTCPriceChart(containerId, data) {
+    const ctx = document.getElementById(containerId);
+    if (!ctx) return;
+    
+    const context = ctx.getContext('2d');
+    
+    if (indicatorCharts[containerId]) {
+        indicatorCharts[containerId].destroy();
+        delete indicatorCharts[containerId];
+    }
+    
+    const labels = data.map((_, i) => `${i+1}`);
+    const current = data[data.length - 1];
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const first = data[0];
+    const change = first ? ((current - first) / first * 100) : 0;
+    
+    // Обновляем статистику
+    document.getElementById('btcPriceCurrent').textContent = '$' + current.toFixed(0);
+    document.getElementById('btcPriceMin').textContent = '$' + min.toFixed(0);
+    document.getElementById('btcPriceMax').textContent = '$' + max.toFixed(0);
+    const changeEl = document.getElementById('btcPriceChange');
+    changeEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(1) + '%';
+    changeEl.className = 'indicator-stat-value ' + (change >= 0 ? 'positive' : 'negative');
+    
+    const grad = context.createLinearGradient(0, 0, 0, 150);
+    grad.addColorStop(0, 'rgba(255,193,7,0.3)');
+    grad.addColorStop(1, 'rgba(255,193,7,0.0)');
+    
+    indicatorCharts[containerId] = new Chart(context, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                borderColor: '#ffc107',
+                backgroundColor: grad,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    enabled: true,
+                    callbacks: {
+                        label: function(context) {
+                            return '$' + context.parsed.y.toFixed(0);
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: 'rgba(255,255,255,0.2)', maxTicksLimit: 10, font: { size: 7 } }
+                },
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: 'rgba(255,255,255,0.2)', callback: v => '$' + v.toFixed(0), font: { size: 8 } }
+                }
+            }
+        }
+    });
+}
+
+// Создание графика активности китов
+function drawWhaleChart(containerId, data) {
+    const ctx = document.getElementById(containerId);
+    if (!ctx) return;
+    
+    const context = ctx.getContext('2d');
+    
+    if (indicatorCharts[containerId]) {
+        indicatorCharts[containerId].destroy();
+        delete indicatorCharts[containerId];
+    }
+    
+    const labels = data.map((_, i) => `${i+1}`);
+    const current = data[data.length - 1];
+    
+    // Определяем статус
+    let status, detail;
+    const score = Math.round(current);
+    document.getElementById('whaleScore').textContent = score;
+    
+    if (score >= 70) {
+        status = '🔥 Активное накопление';
+        detail = 'Крупные кошельки агрессивно увеличивают позиции';
+    } else if (score >= 50) {
+        status = '📈 Умеренное накопление';
+        detail = 'Киты постепенно наращивают свои запасы';
+    } else if (score >= 30) {
+        status = '📊 Нейтральная активность';
+        detail = 'Киты сохраняют текущие позиции';
+    } else {
+        status = '📉 Распределение активов';
+        detail = 'Крупные держатели сокращают позиции';
+    }
+    document.getElementById('whaleStatus').textContent = status;
+    document.getElementById('whaleDetail').textContent = detail;
+    
+    // Генерируем данные о количестве китов и накоплении
+    const whaleCount = Math.round(1500 + (score - 50) * 10 + Math.random() * 200);
+    const accumulation = Math.round((score - 40) * 50 + Math.random() * 200);
+    const distribution = Math.round((60 - score) * 30 + Math.random() * 150);
+    document.getElementById('whaleCount').textContent = whaleCount.toLocaleString();
+    document.getElementById('whaleAccumulation').textContent = '+' + Math.max(0, accumulation).toLocaleString() + ' BTC';
+    document.getElementById('whaleDistribution').textContent = '-' + Math.max(0, distribution).toLocaleString() + ' BTC';
+    
+    const grad = context.createLinearGradient(0, 0, 0, 150);
+    const color = score >= 50 ? '#4caf50' : score >= 30 ? '#ffc107' : '#f44336';
+    grad.addColorStop(0, color + '40');
+    grad.addColorStop(1, color + '00');
+    
+    indicatorCharts[containerId] = new Chart(context, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                borderColor: color,
+                backgroundColor: grad,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    enabled: true,
+                    callbacks: {
+                        label: function(context) {
+                            return 'Активность: ' + context.parsed.y.toFixed(1) + '%';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: 'rgba(255,255,255,0.2)', maxTicksLimit: 10, font: { size: 7 } }
+                },
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: 'rgba(255,255,255,0.2)', callback: v => v + '%', font: { size: 8 } },
+                    min: 0,
+                    max: 100
+                }
+            }
+        }
+    });
 }
 
 // Создание столбчатой диаграммы ETF
@@ -425,8 +707,17 @@ function drawETFChart(containerId, data, color, statsId) {
     });
 }
 
-// Инициализация всех ETF графиков
-function initAllETFs() {
+// Инициализация всех индикаторов
+function initIndicators() {
+    // BTC Price
+    const btcPriceData = generateBTCPriceData(30);
+    drawBTCPriceChart('btcPriceChart', btcPriceData);
+    
+    // Whale Activity
+    const whaleData = generateWhaleData(30);
+    drawWhaleChart('whaleChart', whaleData);
+    
+    // ETF Data
     const btcData = generateETFData(30);
     const ethData = generateETFData(30);
     
@@ -451,237 +742,4 @@ async function fetchData(id, days) {
     try {
         let d = days; 
         if (d===365 || d===180) d = Math.min(d,365);
-        const data = await fetchWithRetry(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${d}`);
-        return data.prices || [];
-    } catch(e) { 
-        return []; 
-    }
-}
-
-function drawChart(ctx, prices) {
-    const labels = prices.map(p => { 
-        const d = new Date(p[0]); 
-        return currentDays>=180 ? d.toLocaleDateString('ru-RU',{month:'short',year:'numeric'}) : d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'}); 
-    });
-    const values = prices.map(p => p[1]);
-    window._vals = values; 
-    window._prices = prices;
-    const grad = ctx.createLinearGradient(0,0,0,300);
-    grad.addColorStop(0,'rgba(255,193,7,0.3)'); 
-    grad.addColorStop(1,'rgba(255,193,7,0.0)');
-    chart = new Chart(ctx, {
-        type:'line',
-        data:{ 
-            labels, 
-            datasets:[{ 
-                data:values, 
-                borderColor:'#ffc107', 
-                backgroundColor:grad, 
-                fill:true, 
-                tension:0.4, 
-                pointRadius:0, 
-                pointHoverRadius:6, 
-                borderWidth:2 
-            }] 
-        },
-        options:{
-            responsive:true, 
-            maintainAspectRatio:false,
-            plugins:{ 
-                legend:{display:false}, 
-                tooltip:{ enabled:false } 
-            },
-            scales:{
-                x:{ 
-                    grid:{color:'rgba(255,255,255,0.05)'}, 
-                    ticks:{color:'rgba(255,255,255,0.4)', maxTicksLimit:10, maxRotation:30, autoSkip:true} 
-                },
-                y:{ 
-                    grid:{color:'rgba(255,255,255,0.05)'}, 
-                    ticks:{color:'rgba(255,255,255,0.4)', callback:v => '$'+v.toFixed(0)} 
-                }
-            }
-        }
-    });
-    if (prices.length) currentPrice = prices[prices.length-1][1];
-}
-
-function updateCrosshair(x, y) {
-    const canvas = $('priceChart');
-    if (!canvas) return;
-    const canvasRect = canvas.getBoundingClientRect();
-    if (!chart) return;
-    const xScale = chart.scales.x, yScale = chart.scales.y;
-    const chartArea = chart.chartArea;
-    const canvasX = x - canvasRect.left;
-    const canvasY = y - canvasRect.top;
-
-    let idx = 0, dist = Infinity;
-    for (let i=0; i<window._vals.length; i++) {
-        const px = xScale.getPixelForValue(i);
-        const d = Math.abs(px - canvasX);
-        if (d < dist) { dist = d; idx = i; }
-    }
-
-    const xPos = xScale.getPixelForValue(idx);
-    const yPos = yScale.getPixelForValue(window._vals[idx]);
-
-    if (xPos < chartArea.left || xPos > chartArea.right || yPos < chartArea.top || yPos > chartArea.bottom) {
-        hideCrosshair();
-        return;
-    }
-
-    // Получаем позицию canvas относительно chartContainer
-    const containerRect = $('chartContainer').getBoundingClientRect();
-    const canvasRect2 = canvas.getBoundingClientRect();
-    
-    // Корректируем позицию с учетом смещения canvas внутри container
-    const offsetX = canvasRect2.left - containerRect.left;
-    const offsetY = canvasRect2.top - containerRect.top;
-
-    $('crosshairH').style.cssText = `display:block;left:0;width:100%;top:${offsetY + yPos}px;`;
-    $('crosshairV').style.cssText = `display:block;top:0;height:100%;left:${offsetX + xPos}px;`;
-    $('crosshairLabel').style.cssText = `display:block;left:${offsetX + xPos + 10}px;top:${offsetY + yPos - 10}px;`;
-    $('crosshairLabel').textContent = '$'+window._vals[idx].toFixed(2);
-    $('chartPriceDisplay').textContent = '$'+window._vals[idx].toFixed(2);
-    $('chartPriceDisplay').classList.add('touch');
-    isTouching = true;
-}
-
-function hideCrosshair() {
-    ['crosshairH','crosshairV','crosshairLabel'].forEach(id => {
-        const el = $(id);
-        if (el) el.style.display = 'none';
-    });
-    if (isTouching) {
-        $('chartPriceDisplay').textContent = '$'+currentPrice.toFixed(2);
-        $('chartPriceDisplay').classList.remove('touch');
-        isTouching = false;
-    }
-}
-
-async function updateChart(id, days) {
-    const prices = await fetchData(id, days);
-    if (!prices.length) return;
-    currentPrice = prices[prices.length-1][1];
-    const prev = prices[0][1], chg = prev ? ((currentPrice-prev)/prev*100) : 0;
-    const cls = chg>=0 ? 'green' : 'red';
-    if (!isTouching) { 
-        $('chartPriceDisplay').textContent = '$'+currentPrice.toFixed(2); 
-        $('chartPriceDisplay').classList.remove('touch'); 
-    }
-    $('chartChangeDisplay').textContent = (chg>=0?'+':'')+chg.toFixed(2)+'%';
-    $('chartChangeDisplay').className = 'chart-change-display '+cls;
-    const ctx = $('priceChart').getContext('2d');
-    if (chart) chart.destroy();
-    drawChart(ctx, prices);
-    hideCrosshair();
-}
-
-function openChart(id) {
-    currentCoinId = id;
-    $('appContainer').style.display = 'none';
-    $('chartPage').style.display = 'flex';
-    $('chartCoinTitle').textContent = coinMap[id] || id;
-    document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
-    document.querySelector('.timeframe-btn[data-days="1"]').classList.add('active');
-    currentDays = 1; 
-    isTouching = false;
-    updateChart(id, currentDays);
-    if (updateInterval) clearInterval(updateInterval);
-    updateInterval = setInterval(() => updateChart(currentCoinId, currentDays), 60000);
-}
-
-document.querySelectorAll('.timeframe-btn').forEach(btn => {
-    btn.onclick = function() {
-        document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        currentDays = parseFloat(this.dataset.days);
-        isTouching = false;
-        updateChart(currentCoinId, currentDays);
-    };
-});
-
-// Обработчики событий для крестика
-['mousemove','touchmove'].forEach(ev => {
-    const chartEl = $('priceChart');
-    if (chartEl) {
-        chartEl.addEventListener(ev, function(e) {
-            e.preventDefault();
-            const c = ev === 'touchmove' ? e.touches[0] : e;
-            updateCrosshair(c.clientX, c.clientY);
-        }, { passive: false });
-    }
-});
-
-const chartEl = $('priceChart');
-if (chartEl) {
-    chartEl.addEventListener('mouseleave', hideCrosshair);
-    chartEl.addEventListener('touchend', hideCrosshair);
-    chartEl.addEventListener('touchstart', function(e) {
-        e.preventDefault();
-        const t = e.touches[0];
-        updateCrosshair(t.clientX, t.clientY);
-    }, { passive: false });
-}
-
-// Обновляем позицию крестика при ресайзе
-window.addEventListener('resize', function() {
-    if (isTouching) {
-        hideCrosshair();
-    }
-});
-
-const coins = [
-    { id:'bitcoin', name:'Bitcoin', symbol:'btc', icon:'₿' },
-    { id:'ethereum', name:'Ethereum', symbol:'eth', icon:'⟠' },
-    { id:'binancecoin', name:'BNB', symbol:'bnb', icon:'B' },
-    { id:'ripple', name:'XRP', symbol:'xrp', icon:'✕' },
-    { id:'solana', name:'Solana', symbol:'sol', icon:'◎' },
-    { id:'tron', name:'TRX', symbol:'trx', icon:'T' },
-    { id:'hyperliquid', name:'Hype', symbol:'hype', icon:'◆' }
-];
-
-let cache = null;
-
-async function loadCoins() {
-    try {
-        if (cache) render(cache);
-        const ids = coins.map(c=>c.id).join(',');
-        const data = await fetchWithRetry(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
-        cache = data; 
-        render(data);
-    } catch(e) {
-        if (!cache) {
-            $('coinsList').innerHTML = '<div class="loading">Ошибка. Повтор...</div>';
-            setTimeout(loadCoins, 3000);
-        }
-    }
-}
-
-function render(data) {
-    const list = $('coinsList');
-    if (!list) return;
-    list.innerHTML = '';
-    coins.forEach((c, i) => {
-        const info = data[c.id];
-        const item = document.createElement('div');
-        item.className = 'coin-item';
-        if (!info) {
-            item.innerHTML = `<span class="coin-number">${i+1}</span><div class="coin-icon ${c.symbol}">${c.icon}</div><div class="coin-info"><div class="coin-name">${c.name}</div><div class="coin-symbol">${c.symbol.toUpperCase()}</div></div><div class="coin-price">--</div><div class="coin-change-24h" style="color:rgba(255,255,255,0.3);">--</div>`;
-        } else {
-            const price = info.usd, chg = info.usd_24h_change || 0;
-            const cls = chg>=0 ? 'green' : 'red';
-            const txt = (chg>=0?'+':'')+chg.toFixed(2)+'%';
-            item.innerHTML = `<span class="coin-number">${i+1}</span><div class="coin-icon ${c.symbol}">${c.icon}</div><div class="coin-info"><div class="coin-name">${c.name}</div><div class="coin-symbol">${c.symbol.toUpperCase()}</div></div><div class="coin-price">$${price.toFixed(2)}</div><div class="coin-change-24h ${cls}">${txt}</div>`;
-        }
-        item.onclick = () => openChart(c.id);
-        list.appendChild(item);
-    });
-}
-
-loadCoins();
-setInterval(loadCoins, 60000);
-</script>
-</body>
-</html>
+        const data = await fetchWithRetry(`https://api.coingecko.com/api/v3/coins/${
