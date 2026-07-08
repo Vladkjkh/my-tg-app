@@ -1,3 +1,6 @@
+Вы правы, я забыл обновить CSS для новых блоков. Вот исправленный полный код с правильными отступами:
+
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -742,4 +745,232 @@ async function fetchData(id, days) {
     try {
         let d = days; 
         if (d===365 || d===180) d = Math.min(d,365);
-        const data = await fetchWithRetry(`https://api.coingecko.com/api/v3/coins/${
+        const data = await fetchWithRetry(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${d}`);
+        return data.prices || [];
+    } catch(e) { 
+        return []; 
+    }
+}
+
+function drawChart(ctx, prices) {
+    const labels = prices.map(p => { 
+        const d = new Date(p[0]); 
+        return currentDays>=180 ? d.toLocaleDateString('ru-RU',{month:'short',year:'numeric'}) : d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'}); 
+    });
+    const values = prices.map(p => p[1]);
+    window._vals = values; 
+    window._prices = prices;
+    const grad = ctx.createLinearGradient(0,0,0,300);
+    grad.addColorStop(0,'rgba(255,193,7,0.3)'); 
+    grad.addColorStop(1,'rgba(255,193,7,0.0)');
+    chart = new Chart(ctx, {
+        type:'line',
+        data:{ 
+            labels, 
+            datasets:[{ 
+                data:values, 
+                borderColor:'#ffc107', 
+                backgroundColor:grad, 
+                fill:true, 
+                tension:0.4, 
+                pointRadius:0, 
+                pointHoverRadius:6, 
+                borderWidth:2 
+            }] 
+        },
+        options:{
+            responsive:true, 
+            maintainAspectRatio:false,
+            plugins:{ 
+                legend:{display:false}, 
+                tooltip:{ enabled:false } 
+            },
+            scales:{
+                x:{ 
+                    grid:{color:'rgba(255,255,255,0.05)'}, 
+                    ticks:{color:'rgba(255,255,255,0.4)', maxTicksLimit:10, maxRotation:30, autoSkip:true} 
+                },
+                y:{ 
+                    grid:{color:'rgba(255,255,255,0.05)'}, 
+                    ticks:{color:'rgba(255,255,255,0.4)', callback:v => '$'+v.toFixed(0)} 
+                }
+            }
+        }
+    });
+    if (prices.length) currentPrice = prices[prices.length-1][1];
+}
+
+function updateCrosshair(x, y) {
+    const canvas = $('priceChart');
+    if (!canvas) return;
+    const canvasRect = canvas.getBoundingClientRect();
+    if (!chart) return;
+    const xScale = chart.scales.x, yScale = chart.scales.y;
+    const chartArea = chart.chartArea;
+    const canvasX = x - canvasRect.left;
+    const canvasY = y - canvasRect.top;
+
+    let idx = 0, dist = Infinity;
+    for (let i=0; i<window._vals.length; i++) {
+        const px = xScale.getPixelForValue(i);
+        const d = Math.abs(px - canvasX);
+        if (d < dist) { dist = d; idx = i; }
+    }
+
+    const xPos = xScale.getPixelForValue(idx);
+    const yPos = yScale.getPixelForValue(window._vals[idx]);
+
+    if (xPos < chartArea.left || xPos > chartArea.right || yPos < chartArea.top || yPos > chartArea.bottom) {
+        hideCrosshair();
+        return;
+    }
+
+    const containerRect = $('chartContainer').getBoundingClientRect();
+    const canvasRect2 = canvas.getBoundingClientRect();
+    const offsetX = canvasRect2.left - containerRect.left;
+    const offsetY = canvasRect2.top - containerRect.top;
+
+    $('crosshairH').style.cssText = `display:block;left:0;width:100%;top:${offsetY + yPos}px;`;
+    $('crosshairV').style.cssText = `display:block;top:0;height:100%;left:${offsetX + xPos}px;`;
+    $('crosshairLabel').style.cssText = `display:block;left:${offsetX + xPos + 10}px;top:${offsetY + yPos - 10}px;`;
+    $('crosshairLabel').textContent = '$'+window._vals[idx].toFixed(2);
+    $('chartPriceDisplay').textContent = '$'+window._vals[idx].toFixed(2);
+    $('chartPriceDisplay').classList.add('touch');
+    isTouching = true;
+}
+
+function hideCrosshair() {
+    ['crosshairH','crosshairV','crosshairLabel'].forEach(id => {
+        const el = $(id);
+        if (el) el.style.display = 'none';
+    });
+    if (isTouching) {
+        $('chartPriceDisplay').textContent = '$'+currentPrice.toFixed(2);
+        $('chartPriceDisplay').classList.remove('touch');
+        isTouching = false;
+    }
+}
+
+async function updateChart(id, days) {
+    const prices = await fetchData(id, days);
+    if (!prices.length) return;
+    currentPrice = prices[prices.length-1][1];
+    const prev = prices[0][1], chg = prev ? ((currentPrice-prev)/prev*100) : 0;
+    const cls = chg>=0 ? 'green' : 'red';
+    if (!isTouching) { 
+        $('chartPriceDisplay').textContent = '$'+currentPrice.toFixed(2); 
+        $('chartPriceDisplay').classList.remove('touch'); 
+    }
+    $('chartChangeDisplay').textContent = (chg>=0?'+':'')+chg.toFixed(2)+'%';
+    $('chartChangeDisplay').className = 'chart-change-display '+cls;
+    const ctx = $('priceChart').getContext('2d');
+    if (chart) chart.destroy();
+    drawChart(ctx, prices);
+    hideCrosshair();
+}
+
+function openChart(id) {
+    currentCoinId = id;
+    $('appContainer').style.display = 'none';
+    $('chartPage').style.display = 'flex';
+    $('chartCoinTitle').textContent = coinMap[id] || id;
+    document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.timeframe-btn[data-days="1"]').classList.add('active');
+    currentDays = 1; 
+    isTouching = false;
+    updateChart(id, currentDays);
+    if (updateInterval) clearInterval(updateInterval);
+    updateInterval = setInterval(() => updateChart(currentCoinId, currentDays), 60000);
+}
+
+document.querySelectorAll('.timeframe-btn').forEach(btn => {
+    btn.onclick = function() {
+        document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        currentDays = parseFloat(this.dataset.days);
+        isTouching = false;
+        updateChart(currentCoinId, currentDays);
+    };
+});
+
+['mousemove','touchmove'].forEach(ev => {
+    const chartEl = $('priceChart');
+    if (chartEl) {
+        chartEl.addEventListener(ev, function(e) {
+            e.preventDefault();
+            const c = ev === 'touchmove' ? e.touches[0] : e;
+            updateCrosshair(c.clientX, c.clientY);
+        }, { passive: false });
+    }
+});
+
+const chartEl = $('priceChart');
+if (chartEl) {
+    chartEl.addEventListener('mouseleave', hideCrosshair);
+    chartEl.addEventListener('touchend', hideCrosshair);
+    chartEl.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        const t = e.touches[0];
+        updateCrosshair(t.clientX, t.clientY);
+    }, { passive: false });
+}
+
+window.addEventListener('resize', function() {
+    if (isTouching) {
+        hideCrosshair();
+    }
+});
+
+const coins = [
+    { id:'bitcoin', name:'Bitcoin', symbol:'btc', icon:'₿' },
+    { id:'ethereum', name:'Ethereum', symbol:'eth', icon:'⟠' },
+    { id:'binancecoin', name:'BNB', symbol:'bnb', icon:'B' },
+    { id:'ripple', name:'XRP', symbol:'xrp', icon:'✕' },
+    { id:'solana', name:'Solana', symbol:'sol', icon:'◎' },
+    { id:'tron', name:'TRX', symbol:'trx', icon:'T' },
+    { id:'hyperliquid', name:'Hype', symbol:'hype', icon:'◆' }
+];
+
+let cache = null;
+
+async function loadCoins() {
+    try {
+        if (cache) render(cache);
+        const ids = coins.map(c=>c.id).join(',');
+        const data = await fetchWithRetry(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
+        cache = data; 
+        render(data);
+    } catch(e) {
+        if (!cache) {
+            $('coinsList').innerHTML = '<div class="loading">Ошибка. Повтор...</div>';
+            setTimeout(loadCoins, 3000);
+        }
+    }
+}
+
+function render(data) {
+    const list = $('coinsList');
+    if (!list) return;
+    list.innerHTML = '';
+    coins.forEach((c, i) => {
+        const info = data[c.id];
+        const item = document.createElement('div');
+        item.className = 'coin-item';
+        if (!info) {
+            item.innerHTML = `<span class="coin-number">${i+1}</span><div class="coin-icon ${c.symbol}">${c.icon}</div><div class="coin-info"><div class="coin-name">${c.name}</div><div class="coin-symbol">${c.symbol.toUpperCase()}</div></div><div class="coin-price">--</div><div class="coin-change-24h" style="color:rgba(255,255,255,0.3);">--</div>`;
+        } else {
+            const price = info.usd, chg = info.usd_24h_change || 0;
+            const cls = chg>=0 ? 'green' : 'red';
+            const txt = (chg>=0?'+':'')+chg.toFixed(2)+'%';
+            item.innerHTML = `<span class="coin-number">${i+1}</span><div class="coin-icon ${c.symbol}">${c.icon}</div><div class="coin-info"><div class="coin-name">${c.name}</div><div class="coin-symbol">${c.symbol.toUpperCase()}</div></div><div class="coin-price">$${price.toFixed(2)}</div><div class="coin-change-24h ${cls}">${txt}</div>`;
+        }
+        item.onclick = () => openChart(c.id);
+        list.appendChild(item);
+    });
+}
+
+loadCoins();
+setInterval(loadCoins, 60000);
+</script>
+</body>
+</html>
